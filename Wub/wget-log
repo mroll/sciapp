@@ -1,0 +1,12 @@
+--2017-04-29 00:24:48--  https://03503934657448948655.googlegroups.com/attach/8485b55f3863e/wt_local.tcl?part=0.2
+Loaded CA certificate '/etc/ssl/certs/ca-certificates.crt'
+Resolving 03503934657448948655.googlegroups.com... 209.85.232.137
+Connecting to 03503934657448948655.googlegroups.com|209.85.232.137|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+Saving to: ‘wt_local.tcl?part=0.2’
+
+wt_local.tcl?part=0.2                                                    [<=>                                                                                                                                                                  ]       0  --.-KB/s               wt_local.tcl?part=0.2                                                    [ <=>                                                                                                                                                                 ]     130  --.-KB/s    in 0s      
+
+2017-04-29 00:24:49 (1.21 MB/s) - ‘wt_local.tcl?part=0.2’ saved [130]
+

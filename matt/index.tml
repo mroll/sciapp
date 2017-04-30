@@ -1,0 +1,13 @@
+[
+dict set response -title "Test page"
+
+if {[catch {set response [::sticky loader $response hotzone #sticky event click]} e eo]} {
+   #puts stderr "STICKY BEFORE: $e ($eo)"
+}
+  return [<img> id sticky title "double click to create a sticky note" style "position: absolute; top: 0pt; left: 0pt" src /jquery/images/ok.png]
+]
+
+
+    <div class="container">
+         <p>Hello, world</p>
+    </div>
