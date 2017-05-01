@@ -322,6 +322,12 @@ namespace eval ::Query {
 	return $query
     }
 
+    proc with { r body } {
+        dict for {var val} [parse $r] {
+            uplevel [list set $var [lindex $val 0]]
+        }
+    }
+
     # dump query dict
     proc dump {qd} {
 	set result {}

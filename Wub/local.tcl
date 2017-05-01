@@ -113,28 +113,17 @@ namespace eval ::Sciapp {
         return [Http Ok $r $page]
     }
 
-    proc /new-question { r args } {
-        set question [Query::value [Query::parse $r] question]
-
-        db eval {insert into question (question) values ($question)}
-        set id [db eval {select last_insert_rowid()}]
-        puts HHHHEEEEERRRR
-        puts $id
-        
-        set data [::json::write string [subst {{"message": "success", "id": "$id"}}]]
-        
-        return [Http Ok $r $data application/json]
+    proc dbproc { name sql res } {
+        proc $name { r args } [subst -nocommands {
+            Query::with \$r {}
+            db eval {$sql}
+            set lastrowid [db eval {select last_insert_rowid()}]
+            return [Http Ok \$r [::json::write string [subst {{$res}}]] application/json]
+        }]
     }
 
-    proc /rm-question { r args } {
-        set id [Query::value [Query::parse $r] id]
-
-        db eval {delete from question where id = $id}
-
-        set data [::json::write string {{"message": "success"}}]
-
-        return [Http Ok $r $data application/json]
-    }
+    dbproc /new-question {insert into question (question) values ($question)} {"message": "success", "id": "$lastrowid"}
+    dbproc /rm-question {delete from question where id = $id} {"message": "success"}
 
     proc /css { r args } {
         set css {
