@@ -23,8 +23,13 @@ namespace eval ::Sciapp {
         sqlite3 $db $file
     }
 
-    proc list_group_link { href text } {
-        return [<a> href $href style "border-radius: 0;" class "list-group-item list-group-item-action" $text]
+    proc question_list_item { id question } {
+        return "<div class=\"qrow input-group\"> \
+                  <a href=\"/question?$id\" style=\"border-radius: 0;\" class=\"list-group-item list-group-item-action\">$question</a> \
+                  <span class=\"new-q-input input-group-btn\"> \
+                    <button data-id=\"$id\" class=\"rm-question btn btn-secondary\" type=\"button\">-</button> \
+                  </span>
+                </div>"
     }
 
     proc / { r args } {
@@ -36,25 +41,52 @@ namespace eval ::Sciapp {
         set page [<div> id "main-title" class "jumbotron" \
                       [<h1> Questions]]
 
-        set qadder {
+        set js {
             <script>
               $(document).ready(function() {
                   $('#add-question').on('click', e => {
                       e.preventDefault();
-                      
-                      var question = $('#question').val(),
-                          data = { question: question };
+
+
+                      var question = $('#question').val();
+                      if (question == '') {
+                          return;
+                      }
+                      data = { question: question };
 
                       $.post('/new-question', data, function(data) {
                           data = JSON.parse(data);
 
                           if (data.message == "success") {
-                              $(`<li class="list-group-item list-group-item-action"
-                                     style="border-radius: 0;">${question}</li>`).prependTo('#question-list');
+                              var id = data.id;
+
+                              $(`<div class="qrow input-group">
+                                   <a href="/question?${id}" style="border-radius: 0;" class="list-group-item list-group-item-action">${question}</a>
+                                   <span class="new-q-input input-group-btn">
+                                     <button data-id="${id}" class="rm-question btn btn-secondary" type="button">-</button>
+                                   </span>
+                                 </div>`).prependTo('#question-list');
+
                               $('#question').val('')
+
+                              $('.rm-question').click(qdelete);
                           }
                       });
                   });
+
+                  function qdelete(e) {
+                      e.preventDefault();
+
+                      var el = $(e.target),
+                          id = el.attr('data-id'),
+                          data = { id: id };
+
+                      $.post('/rm-question', data, data => {
+                          el.closest('div').remove();
+                      });
+                  }
+
+                  $('.rm-question').click(qdelete);
               });
             </script>
         }
@@ -63,20 +95,19 @@ namespace eval ::Sciapp {
                       {<input id="question" type="text" class="new-q-input form-control" placeholder="Ask anything...">
                        <span style="margin-bottom: 15px;"
                              class="new-q-input input-group-btn">
-                          <button id="add-question" style="border-radius: 0; width: 75px;" class="btn btn-secondary" type="button">+</button>
+                          <button id="add-question" class="btn btn-secondary" type="button">+</button>
                        </span>}]
 
         set qlist {}
-        set questions [db eval {select * from question} values {
-            lappend qlist [list_group_link "#" $values(question)]
+        set questions [db eval {select * from question order by id desc} values {
+            lappend qlist [question_list_item $values(id) $values(question)]
         }]
 
         append page [<div> class container \
                          [<div> class row \
                               [<div> class "offset-md-3 col-md-6" \
-                                   "$qadd\n \
-                                   [<ul> id question-list class list-group [join $qlist \n]]"]]]
-        append page $qadder
+                                   [join [list $qadd [<ul> id question-list class list-group [join $qlist \n]]] \n]]]]
+        append page $js
 
         set r [Html style $r css]
         return [Http Ok $r $page]
@@ -86,15 +117,29 @@ namespace eval ::Sciapp {
         set question [Query::value [Query::parse $r] question]
 
         db eval {insert into question (question) values ($question)}
+        set id [db eval {select last_insert_rowid()}]
+        puts HHHHEEEEERRRR
+        puts $id
         
+        set data [::json::write string [subst {{"message": "success", "id": "$id"}}]]
+        
+        return [Http Ok $r $data application/json]
+    }
+
+    proc /rm-question { r args } {
+        set id [Query::value [Query::parse $r] id]
+
+        db eval {delete from question where id = $id}
+
         set data [::json::write string {{"message": "success"}}]
-        
+
         return [Http Ok $r $data application/json]
     }
 
     proc /css { r args } {
         set css {
             body {
+                background-color: white;
               font-family: 'Slabo 27px', serif;
             }
 
@@ -123,6 +168,18 @@ namespace eval ::Sciapp {
             .list-group-item:hover {
                 background-color: #700cce;
                 color: white;
+            }
+
+            #add-question {
+                cursor: pointer;
+                border-radius: 0;
+                width: 75px;
+            }
+
+            .rm-question {
+                cursor: pointer;
+                border-radius: 0;
+                width: 75px;
             }
         }
 
