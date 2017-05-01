@@ -1,11 +1,14 @@
+package require json::write
+package require sqlite3
+
 namespace eval ::Sciapp {
     variable headers {
             {<link rel="stylesheet"
                 href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
                 integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ"
                 crossorigin="anonymous">}
-            {<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
-                integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
+            {<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+                integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
                 crossorigin="anonymous"></script>}
             {<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
                 integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
@@ -15,6 +18,10 @@ namespace eval ::Sciapp {
                 crossorigin="anonymous"></script>}
             {<link href="https://fonts.googleapis.com/css?family=Slabo+27px" rel="stylesheet">}
         }
+
+    proc init { db file } {
+        sqlite3 $db $file
+    }
 
     proc list_group_link { href text } {
         return [<a> href $href class "list-group-item list-group-item-action" $text]
@@ -29,24 +36,66 @@ namespace eval ::Sciapp {
         set page [<div> id "main-title" class "jumbotron" \
                       [<h1> Questions]]
 
-        set qlist "[list_group_link "#" "What does the magnetic field of the sun look like?"] \
-                   [list_group_link "#" "What chemicals are in a sharpie?"] \
-                   [list_group_link "#" "At what temperature does THC vaporize?"] \
-                   [list_group_link "#" "What is the frequency spectrum of the regional rail?"]"
+        set qadder {
+            <script>
+              $(document).ready(function() {
+                  $('#add-question').on('click', e => {
+                      e.preventDefault();
+                      
+                      var question = $('#question').val(),
+                          data = { question: question };
+
+                      $.post('/new-question', data, function(data) {
+                          data = JSON.parse(data);
+
+                          if (data.message == "success") {
+                              $(`<li class="list-group-item list-group-item-action">${question}</li>`).prependTo('#question-list');
+                              $('#question').val('')
+                          }
+                      });
+                  });
+              });
+            </script>
+        }
+
+        set qadd [<div> class input-group \
+                      {<input id="question" type="text" class="new-q-input form-control" placeholder="Ask anything...">
+                       <span class="new-q-input input-group-btn">
+                         <button id="add-question" style="width: 75px;" class="btn btn-secondary" type="button">+</button>
+                       </span>}]
+
+        set qlist {}
 
         append page [<div> class container \
                          [<div> class row \
                               [<div> class "offset-md-3 col-md-6" \
-                                   [<ul> class list-group $qlist]]]]
+                                   "$qadd\n \
+                                   [<ul> id question-list class list-group $qlist]"]]]
+        append page $qadder
 
         set r [Html style $r css]
         return [Http Ok $r $page]
+    }
+
+    proc /new-question { r args } {
+        set question [Query::value [Query::parse $r] question]
+
+        db eval {insert into question (question) values ($question)}
+        
+        set data [::json::write string {{"message": "success"}}]
+        
+        return [Http Ok $r $data application/json]
     }
 
     proc /css { r args } {
         set css {
             body {
               font-family: 'Slabo 27px', serif;
+            }
+
+            .new-q-input {
+                font-family: 'Slabo 27px', serif;
+                height: 50px;
             }
 
             #main-title {
@@ -76,5 +125,6 @@ namespace eval ::Sciapp {
 
     namespace export -clear *
     namespace ensemble create -subcommands {}
-
 }
+
+Sciapp init db db/sciapp.sqlite3
