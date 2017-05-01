@@ -24,7 +24,7 @@ namespace eval ::Sciapp {
     }
 
     proc list_group_link { href text } {
-        return [<a> href $href class "list-group-item list-group-item-action" $text]
+        return [<a> href $href style "border-radius: 0;" class "list-group-item list-group-item-action" $text]
     }
 
     proc / { r args } {
@@ -49,7 +49,8 @@ namespace eval ::Sciapp {
                           data = JSON.parse(data);
 
                           if (data.message == "success") {
-                              $(`<li class="list-group-item list-group-item-action">${question}</li>`).prependTo('#question-list');
+                              $(`<li class="list-group-item list-group-item-action"
+                                     style="border-radius: 0;">${question}</li>`).prependTo('#question-list');
                               $('#question').val('')
                           }
                       });
@@ -60,8 +61,9 @@ namespace eval ::Sciapp {
 
         set qadd [<div> class input-group \
                       {<input id="question" type="text" class="new-q-input form-control" placeholder="Ask anything...">
-                       <span class="new-q-input input-group-btn">
-                         <button id="add-question" style="width: 75px;" class="btn btn-secondary" type="button">+</button>
+                       <span style="margin-bottom: 15px;"
+                             class="new-q-input input-group-btn">
+                          <button id="add-question" style="border-radius: 0; width: 75px;" class="btn btn-secondary" type="button">+</button>
                        </span>}]
 
         set qlist {}
@@ -99,6 +101,7 @@ namespace eval ::Sciapp {
             .new-q-input {
                 font-family: 'Slabo 27px', serif;
                 height: 50px;
+                border-radius: 0;
             }
 
             #main-title {
