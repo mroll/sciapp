@@ -65,12 +65,15 @@ namespace eval ::Sciapp {
                        </span>}]
 
         set qlist {}
+        set questions [db eval {select * from question} values {
+            lappend qlist [list_group_link "#" $values(question)]
+        }]
 
         append page [<div> class container \
                          [<div> class row \
                               [<div> class "offset-md-3 col-md-6" \
                                    "$qadd\n \
-                                   [<ul> id question-list class list-group $qlist]"]]]
+                                   [<ul> id question-list class list-group [join $qlist \n]]"]]]
         append page $qadder
 
         set r [Html style $r css]
