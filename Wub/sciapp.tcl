@@ -1,6 +1,7 @@
 package require json::write
 package require sqlite3
 
+
 proc ::tcl::dict::get? {args} {
 
     try {                ::set x [dict get {*}$args]
@@ -119,7 +120,9 @@ namespace eval ::Sciapp {
     proc /logout { r args } {
         Query::with $r {}
 
+        dict set r set-cookie questions=nil
         user rmsession $name
+
         Http Redirect $r /login
     }
 
@@ -151,7 +154,8 @@ namespace eval ::Sciapp {
 
         if { [user auth $name $password] } {
             user newsession $name
-            dict set r -cookies questions [list $name [user getsession $name]]
+
+            dict set r set-cookie "questions=$name [user getsession $name]"
 
             # might have to url-encode the name expansion
             return [Http Redirect $r /dashboard?name=$name]
@@ -160,16 +164,20 @@ namespace eval ::Sciapp {
         return [Http Redirect $r /login]
     }
 
+    proc _cookie { r } {
+        dict get [Cookies Fetch $r {-name questions}] -value
+    }
+
     proc _cookiename { r } {
-        lindex [dict get? $r -cookies questions] 0
+        lindex [_cookie $r] 0
     }
 
     proc _cookieval { r }  {
-        lindex [dict get? $r -cookies questions] 1
+        lindex [_cookie $r] 1
     }
 
     proc _cookie? { r } {
-        expr { [dict get? $r cookies] ne {} }
+        expr { [dict get? $r -cookies] ne {} }
     }
 
     proc _protect { } {
@@ -181,10 +189,7 @@ namespace eval ::Sciapp {
  
     proc /dashboard { r args } {
         # _protect
-        puts here
-        puts [user getsession [_cookiename $r]]
-        puts [_cookieval $r]
-        if { ![_cookie? $r] } {
+        if { [_cookie $r] eq "nil" } {
             return [Http Redirect $r /login]
         }
         if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
@@ -220,7 +225,7 @@ namespace eval ::Sciapp {
         user add $name $password
         user newsession $name
 
-        dict set r -cookies questions [user getsession $name]
+        # dict set r -cookies questions [user getsession $name]
         
         # might have to url-encode the name expansion
         return [Http Redirect $r /dashboard?name=$name]
