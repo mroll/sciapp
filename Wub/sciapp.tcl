@@ -1,6 +1,69 @@
 package require json::write
 package require sqlite3
 
+
+proc ::tcl::dict::get? {args} {
+
+    try {                ::set x [dict get {*}$args]
+    } on error message { ::set x {} }
+
+    return $x
+ }
+
+namespace ensemble configure dict -map [dict merge [namespace ensemble configure dict -map] {get? ::tcl::dict::get?}]
+
+proc ::randint limit {
+    expr {int(rand() * $limit +1)}
+}
+
+proc ::padfront { s n } {
+    concat [string repeat 0 [expr { $n - [string length $s] }]] $s
+}
+
+namespace eval ::user {
+    proc hash { string } { return [base64::encode [md5::md5 $string]] }
+
+    proc exists { name } {
+        return [db exists {select 1 from user where name = $name}]
+    }
+
+    proc add { name password } {
+        set passhash [hash $password]
+        db eval {insert into user (name, password) values ($name, $passhash)}
+    }
+
+    proc rmsession { name } {
+        db eval {update user set session = NULL where name = $name}
+    }
+
+    proc setsession { name session } {
+        db eval {update user set session = $session where name = $name}
+    }
+
+    proc getsession { name } {
+        db eval {select session from user where name = $name}
+    }
+
+    proc newsession { name } {
+        setsession $name [hash [::padfront [::randint 1e6] 64]]
+    }
+
+    proc hassession { name } {
+        getsession $name
+    }
+
+    proc _password { name } {
+        db eval {select password from user where name = $name}
+    }
+
+    proc auth { name password } {
+        expr { [_password $name] eq [hash $password] }
+    }
+
+    namespace export -clear *
+    namespace ensemble create -subcommands { rmsession auth exists add setsession getsession newsession }
+}
+
 namespace eval ::Sciapp {
     variable headers {
             {<link rel="stylesheet"
@@ -30,6 +93,166 @@ namespace eval ::Sciapp {
                     <button data-id=\"$id\" class=\"rm-question btn btn-secondary\" type=\"button\">-</button> \
                   </span>
                 </div>"
+    }
+
+    proc /register { r args } {
+        switch [dict get $r -method] {
+            GET {
+                return [register_get $r $args]
+            }
+            POST {
+                return [register_post $r $args]
+            }
+        }
+    }
+
+    proc /login { r args } {
+        switch [dict get $r -method] {
+            GET {
+                return [login_get $r $args]
+            }
+            POST {
+                return [login_post $r $args]
+            }
+        }
+    }
+
+    proc /logout { r args } {
+        Query::with $r {}
+
+        dict set r set-cookie questions=nil
+        user rmsession $name
+
+        Http Redirect $r /login
+    }
+
+    proc login_get { r args } {
+        variable headers
+
+        dict set r -headers $headers
+        dict set r -title Sciapp
+        
+        set page [<div> id "main-title" class "jumbotron" \
+                      [<h1> Questions]]
+                         
+        append page [<div> class row \
+                         [<div> class "offset-md-4 col-md-4" \
+                              [<form> action /login method post \
+                                   [join [list [<div> class form-group \
+                                                    [<input> id name name name type text class "new-q-input form-control" placeholder "name" {}]] \
+                                              [<div> class form-group \
+                                                   [<input> id password name password type password class "new-q-input form-control" placeholder "password" {}]] \
+                                              {<button id="register-btn" class="btn sciapp" type="submit">Login</button>}] \
+                                        \n]]]]
+
+        set r [Html style $r css]
+        return [Http Ok $r $page]
+    }
+
+    proc login_post { r args } {
+        Query::with $r {}
+
+        if { [user auth $name $password] } {
+            user newsession $name
+
+            dict set r set-cookie "questions=$name [user getsession $name]"
+
+            # might have to url-encode the name expansion
+            return [Http Redirect $r /dashboard?name=$name]
+        }
+        
+        return [Http Redirect $r /login]
+    }
+
+    proc _cookie { r } {
+        dict get [Cookies Fetch $r {-name questions}] -value
+    }
+
+    proc _cookiename { r } {
+        lindex [_cookie $r] 0
+    }
+
+    proc _cookieval { r }  {
+        lindex [_cookie $r] 1
+    }
+
+    proc _cookie? { r } {
+        expr { [dict get? $r -cookies] ne {} }
+    }
+
+    proc _protect { } {
+        set script {if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
+            return [Http Redirect $r /login]
+        }}
+        uplevel $script
+    }
+ 
+    proc /dashboard { r args } {
+        # _protect
+        if { [_cookie $r] eq "nil" } {
+            return [Http Redirect $r /login]
+        }
+        if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
+            return [Http Redirect $r /login]
+        }
+
+        variable headers
+
+        Query::with $r {}
+
+        dict set r -headers $headers
+        dict set r -title Sciapp
+        
+        set page [<div> id "main-title" class "jumbotron" \
+                      [<h1> Questions]]
+
+        append page [<div> class row \
+                         [<div> class "offset-md-2 col-md-4" \
+                              [<span> "Hello, $name"]]]
+
+        set r [Html style $r css]
+        return [Http Ok $r $page]
+    }
+
+    proc register_post { r args } {
+        Query::with $r {}
+
+        # figure out how to pass a message here
+        if { [user exists $name] } {
+            return [Http Redirect $r /register]
+        }
+
+        user add $name $password
+        user newsession $name
+
+        # dict set r -cookies questions [user getsession $name]
+        
+        # might have to url-encode the name expansion
+        return [Http Redirect $r /dashboard?name=$name]
+    }
+
+    proc register_get { r args } {
+        variable headers
+
+        dict set r -headers $headers
+        dict set r -title Sciapp
+
+        set page [<div> id "main-title" class "jumbotron" \
+                      [<h1> Questions]]
+
+
+        append page [<div> class row \
+                         [<div> class "offset-md-4 col-md-4" \
+                              [<form> action /register method post \
+                                   [join [list [<div> class form-group \
+                                                    [<input> id name name name type text class "new-q-input form-control" placeholder "name" {}]] \
+                                              [<div> class form-group \
+                                                   [<input> id password name password type password class "new-q-input form-control" placeholder "password" {}]] \
+                                              {<button id="register-btn" class="btn sciapp" type="submit">Register</button>}] \
+                                        \n]]]]
+                                        
+        set r [Html style $r css]
+        return [Http Ok $r $page]
     }
 
     proc / { r args } {
@@ -127,6 +350,14 @@ namespace eval ::Sciapp {
 
     proc /css { r args } {
         set css {
+            /** could break this into regular and inverted classes **/
+            .sciapp {
+              background-color: #700cce;
+                color: white;
+                border-radius: 0;
+              font-family: 'Slabo 27px', serif;
+            }
+
             body {
                 background-color: white;
               font-family: 'Slabo 27px', serif;
@@ -169,6 +400,15 @@ namespace eval ::Sciapp {
                 cursor: pointer;
                 border-radius: 0;
                 width: 75px;
+            }
+
+            #name {
+              margin-bottom: 10px;
+            }
+
+            #register-btn {
+              width: 100%;
+              cursor: pointer;
             }
         }
 
