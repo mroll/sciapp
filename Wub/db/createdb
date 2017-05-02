@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+for f in *.sql; do
+    cat $f | sqlite3 sciapp.sqlite3
+done;
