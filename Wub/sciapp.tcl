@@ -1,6 +1,38 @@
 package require json::write
 package require sqlite3
 
+proc randint limit {
+    expr {int(rand() * $limit +1)}
+}
+
+namespace eval ::user {
+    proc hash { string } { return [md5::md5 $string] }
+
+    proc exists { name } {
+        return [db exists {select 1 from user where name = $name}]
+    }
+
+    proc add { name password } {
+        set passhash [hash $password]
+        db eval {insert into user (name, password) values ($name, $passhash)}
+    }
+
+    proc setsession { name session } {
+        db eval {update user set session = $session where name = $name}
+    }
+
+    proc getsession { name } {
+        db eval {select session from user where name = $name}
+    }
+
+    proc newsession { name } {
+        setsession $name [hash [::randint 1e6]]
+    }
+
+    namespace export -clear *
+    namespace ensemble create -subcommands { exists add setsession getsession newsession }
+}
+
 namespace eval ::Sciapp {
     variable headers {
             {<link rel="stylesheet"
@@ -30,6 +62,68 @@ namespace eval ::Sciapp {
                     <button data-id=\"$id\" class=\"rm-question btn btn-secondary\" type=\"button\">-</button> \
                   </span>
                 </div>"
+    }
+
+    proc /register { r args } {
+        switch [dict get $r -method] {
+            GET {
+                return [register_get $r $args]
+            }
+            POST {
+                return [register_post $r $args]
+            }
+        }
+    }
+
+    proc /dashboard { r args } {
+        variable headers
+
+        dict set r -headers $headers
+        dict set r -title Sciapp
+        
+        set page [<div> id "main-title" class "jumbotron" \
+                      [<h1> Questions]]
+
+        set r [Html style $r css]
+        return [Http Ok $r $page]
+    }
+
+    proc register_post { r args } {
+        Query::with $r {}
+
+        # figure out how to pass a message here
+        if { [user exists $name] } {
+            return [Http Redirect $r /register]
+        }
+
+        user add $name $password
+        user newsession $name
+        
+        return [Http redirect $r /dashboard]
+    }
+
+    proc register_get { r args } {
+        variable headers
+
+        dict set r -headers $headers
+        dict set r -title Sciapp
+
+        set page [<div> id "main-title" class "jumbotron" \
+                      [<h1> Questions]]
+
+
+        append page [<div> class row \
+                         [<div> class "offset-md-4 col-md-4" \
+                              [<form> action /register method post \
+                                   [join [list [<div> class form-group \
+                                                    [<input> id name name name type text class "new-q-input form-control" placeholder "name" {}]] \
+                                              [<div> class form-group \
+                                                   [<input> id password name password type password class "new-q-input form-control" placeholder "password" {}]] \
+                                              {<button id="register-btn" class="btn sciapp" type="submit">Register</button>}] \
+                                        \n]]]]
+                                        
+        set r [Html style $r css]
+        return [Http Ok $r $page]
     }
 
     proc / { r args } {
@@ -127,6 +221,14 @@ namespace eval ::Sciapp {
 
     proc /css { r args } {
         set css {
+            /** could break this into regular and inverted classes **/
+            .sciapp {
+              background-color: #700cce;
+                color: white;
+                border-radius: 0;
+              font-family: 'Slabo 27px', serif;
+            }
+
             body {
                 background-color: white;
               font-family: 'Slabo 27px', serif;
@@ -169,6 +271,15 @@ namespace eval ::Sciapp {
                 cursor: pointer;
                 border-radius: 0;
                 width: 75px;
+            }
+
+            #name {
+              margin-bottom: 10px;
+            }
+
+            #register-btn {
+              width: 100%;
+              cursor: pointer;
             }
         }
 
