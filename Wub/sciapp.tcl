@@ -2,6 +2,9 @@ package require json::write
 package require sqlite3
 
 
+proc ::K { x y } { set x }
+proc ::fread { fname } { ::K [read [set fp [open $fname]]] [close $fp] }
+
 proc ::tcl::dict::get? {args} {
 
     try {                ::set x [dict get {*}$args]
@@ -340,72 +343,8 @@ namespace eval ::Sciapp {
     dbproc /new-question {insert into question (question) values ($question)} {"message": "success", "id": "$lastrowid"}
     dbproc /rm-question {delete from question where id = $id} {"message": "success"}
 
-    proc /css { r args } {
-        set css {
-
-            /** could break this into regular and inverted classes **/
-            .sciapp {
-              background-color: #700cce;
-                color: white;
-                border-radius: 0;
-              font-family: 'Slabo 27px', serif;
-            }
-
-            body {
-                background-color: white;
-                font-family: 'Slabo 27px', serif;
-            }
-
-            .user-input-lg {
-                font-family: 'Slabo 27px', serif;
-                border-radius: 0;
-            }
-
-            #main-title {
-              background-color: #700cce;
-              color: white;
-              text-align: center;
-            }
-
-            hr {
-                position: relative;
-                top: -20px;
-                width: 70%;
-            }
-
-            .jumbotron {
-                border-radius: 0;
-            }
-
-            .list-group-item:hover {
-                background-color: #700cce;
-                color: white;
-            }
-
-            #add-question {
-                cursor: pointer;
-                border-radius: 0;
-                width: 75px;
-            }
-
-            .rm-question {
-                cursor: pointer;
-                border-radius: 0;
-                width: 75px;
-            }
-
-            #name {
-              margin-bottom: 10px;
-            }
-
-            #register-btn {
-              width: 100%;
-              cursor: pointer;
-            }
-        }
-
-        return [Http Ok $r $css text/css]
-    }
+    # load the css from ./custom.ss
+    proc /css { r args } [subst { set css {[::fread custom.css]}; return \[Http Ok \$r \$css text/css\] }]
 
     namespace export -clear *
     namespace ensemble create -subcommands {}
