@@ -41,4 +41,4 @@ namespace eval ::Sciapp {
     namespace ensemble create -subcommands {}
 }
 
-Sciapp init db/sciapp.sqlite3
+Sciapp init ${::sciapp_home}/db/sciapp.sqlite3
