@@ -5,6 +5,11 @@ namespace eval ::cookie {
         }
     }
 
+    proc set { rname val } {
+        upvar $rname r
+        dict set r set-cookie "questions=$val"
+    }
+
     proc name { r } {
         lindex [::cookie get $r] 0
     }
@@ -18,5 +23,5 @@ namespace eval ::cookie {
     }
 
     namespace export -clear *
-    namespace ensemble create -subcommands { get name val exists }
+    namespace ensemble create -subcommands { get set name val exists }
 }

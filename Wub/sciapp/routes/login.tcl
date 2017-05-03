@@ -36,7 +36,7 @@ proc login_post { r args } {
 
     if { [user auth $name $password] } {
         user newsession $name
-        dict set r set-cookie "questions=$name [user getsession $name]"
+        ::cookie set r "$name [user getsession $name]"
 
         return [Http Redirect $r /dashboard]
     }
