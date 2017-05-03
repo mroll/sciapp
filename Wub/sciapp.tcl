@@ -55,6 +55,10 @@ namespace eval ::user {
         getsession $name
     }
 
+    proc id { name } {
+        db eval {select id from user where name = $name}
+    }
+
     proc _password { name } {
         db eval {select password from user where name = $name}
     }
@@ -63,8 +67,69 @@ namespace eval ::user {
         expr { [_password $name] eq [hash $password] }
     }
 
+    proc questions { name } {
+        set uid [id $name]
+        db eval {select id, question from question inner join userquestions on
+            userquestions.uid = $uid and
+            userquestions.qid = question.id order by question.id desc}
+    }
+
+    proc loggedin { r } {
+        if { [::cookie get $r] eq "nil" } {
+            return 0
+        }
+        if { [user getsession [::cookie name $r]] ne [::cookie val $r] } {
+            return 0
+        }
+        return 1
+    }
+
     namespace export -clear *
-    namespace ensemble create -subcommands { rmsession auth exists add setsession getsession newsession }
+    namespace ensemble create -subcommands { loggedin id questions rmsession auth exists add setsession getsession newsession }
+}
+
+namespace eval ::cookie {
+    proc get { r } {
+        dict get [Cookies Fetch $r {-name questions}] -value
+    }
+
+    proc name { r } {
+        lindex [::cookie get $r] 0
+    }
+
+    proc val { r }  {
+        lindex [::cookie get $r] 1
+    }
+
+    proc exists { r } {
+        expr { [dict get? $r -cookies] ne {} }
+    }
+
+    namespace export -clear *
+    namespace ensemble create -subcommands { get name val exists }
+}
+
+namespace eval ::question {
+    proc text { id } {
+        db eval {select question from question where id = $id}
+    }
+
+    proc rm { id } {
+        db eval {delete from question where id = $id; delete from userquestions where qid = $id}
+    }
+
+    proc add { question user } {
+        db eval {insert into question (question) values ($question)}
+
+        set uid [user id $user]
+        set qid [db eval {select last_insert_rowid()}]
+        db eval {insert into userquestions (uid, qid) values ($uid, $qid)}
+
+        return $qid
+    }
+
+    namespace export -clear *
+    namespace ensemble create -subcommands { text rm add }
 }
 
 namespace eval ::Sciapp {
@@ -110,6 +175,10 @@ namespace eval ::Sciapp {
     }
 
     proc /login { r args } {
+        if { [user loggedin $r] } {
+            return [Http Redirect $r /dashboard]
+        }
+
         switch [dict get $r -method] {
             GET {
                 return [login_get $r $args]
@@ -121,7 +190,7 @@ namespace eval ::Sciapp {
     }
 
     proc /logout { r args } {
-        set name [_cookiename $r]
+        set name [::cookie name $r]
 
         dict set r set-cookie questions=nil
         user rmsession $name
@@ -159,50 +228,95 @@ namespace eval ::Sciapp {
         return [Http Redirect $r /login]
     }
 
-    proc _cookie { r } {
-        dict get [Cookies Fetch $r {-name questions}] -value
-    }
-
-    proc _cookiename { r } {
-        lindex [_cookie $r] 0
-    }
-
-    proc _cookieval { r }  {
-        lindex [_cookie $r] 1
-    }
-
-    proc _cookie? { r } {
-        expr { [dict get? $r -cookies] ne {} }
-    }
-
     proc auth { name args body } {
         proc $name $args [subst -nocommands {
-            if { [_cookie \$r] eq "nil" } {
+            if { [::cookie get \$r] eq "nil" } {
                 return [Http Redirect \$r /login]
             }
-            if { [user getsession [_cookiename \$r]] ne [_cookieval \$r] } {
+            if { [user getsession [::cookie name \$r]] ne [::cookie val \$r] } {
                 return [Http Redirect \$r /login]
             }
-            set name [_cookiename \$r]
+            set name [::cookie name \$r]
 
             $body
         }]
     }
- 
+
+    proc <siblings> { args } {
+        join $args \n
+    }
+    
     auth /dashboard { r args } {
         variable headers
 
         dict set r -headers $headers
         dict set r -title Sciapp
+
+        set js [string map [list @qlist_item [question_list_item \${id} \${question}]] {
+            <script>
+              $(document).ready(function() {
+                  $('#add-question').on('click', e => {
+                      e.preventDefault();
+
+
+                      var question = $('#question').val();
+                      if (question == '') {
+                          return;
+                      }
+                      data = { question: question };
+
+                      $.post('/new-question', data, function(data) {
+                          data = JSON.parse(data);
+
+                          if (data.message == "success") {
+                              var id = data.id;
+
+                              $(`@qlist_item`).prependTo('#question-list');
+                              $('#question').val('')
+                              $('.rm-question').click(qdelete);
+                          }
+                      });
+                  });
+
+                  function qdelete(e) {
+                      e.preventDefault();
+
+                      var el = $(e.target),
+                          data = { id: el.attr('data-id') };
+
+                      $.post('/rm-question', data, data => {
+                          el.closest('div').remove();
+                      });
+                  }
+
+                  $('.rm-question').click(qdelete);
+              });
+            </script>
+        }]
         
         set page [<div> id "main-title" class "jumbotron" \
                       [<h1> Questions]]
 
         append page [<div> class row \
-                         [<div> class "offset-md-2 col-md-4" \
-                              [join [list [<span> "Hello, $name"] \
-                                         {<a href="/logout" style="border-radius: 0;" class="list-group-item list-group-item-action">Logout</a>}] \
-                                   \n]]]
+                      [<div> class "offset-md-2 col-md-4" \
+                        [<siblings> [<span> "Hello, $name"] \
+                             {<a href="/logout" style="border-radius: 0;" class="list-group-item list-group-item-action">Logout</a>}]]]
+
+        set qadd [<div> class input-group \
+                      {<input id="question" type="text" class="user-input-lg form-control" placeholder="Ask anything...">
+                       <span class="user-input-lg input-group-btn">
+                          <button id="add-question" class="btn btn-secondary" type="button">+</button>
+                       </span>}]
+
+        set qlist [lmap { id q } [user questions $name] { question_list_item $id $q }]
+
+        append page [<div> class container-fluid \
+                      [<div> class row \
+                        [<div> class "offset-md-4 col-md-4" \
+                             [<siblings> $qadd [<ul> id question-list class list-group \
+                                                    [<siblings> {*}$qlist]]]]]]
+
+        append page $js
 
         set r [Html style $r css]
         return [Http Ok $r $page]
@@ -251,97 +365,23 @@ namespace eval ::Sciapp {
     }
 
     proc / { r args } {
-        variable headers
-
-        dict set r -headers $headers
-        dict set r -title Sciapp
-
-        set page [<div> id "main-title" class "jumbotron" \
-                      [<h1> Questions]]
-
-        set js {
-            <script>
-              $(document).ready(function() {
-                  $('#add-question').on('click', e => {
-                      e.preventDefault();
-
-
-                      var question = $('#question').val();
-                      if (question == '') {
-                          return;
-                      }
-                      data = { question: question };
-
-                      $.post('/new-question', data, function(data) {
-                          data = JSON.parse(data);
-
-                          if (data.message == "success") {
-                              var id = data.id;
-
-                              $(`<div class="qrow input-group">
-                                   <a href="/question?${id}" style="border-radius: 0;" class="list-group-item list-group-item-action">${question}</a>
-                                   <span class="user-input-lg input-group-btn">
-                                     <button data-id="${id}" class="rm-question btn btn-secondary" type="button">-</button>
-                                   </span>
-                                 </div>`).prependTo('#question-list');
-
-                              $('#question').val('')
-
-                              $('.rm-question').click(qdelete);
-                          }
-                      });
-                  });
-
-                  function qdelete(e) {
-                      e.preventDefault();
-
-                      var el = $(e.target),
-                          id = el.attr('data-id'),
-                          data = { id: id };
-
-                      $.post('/rm-question', data, data => {
-                          el.closest('div').remove();
-                      });
-                  }
-
-                  $('.rm-question').click(qdelete);
-              });
-            </script>
-        }
-
-        set qadd [<div> class input-group \
-                      {<input id="question" type="text" class="user-input-lg form-control" placeholder="Ask anything...">
-                       <span style="margin-bottom: 15px;"
-                             class="user-input-lg input-group-btn">
-                          <button id="add-question" class="btn btn-secondary" type="button">+</button>
-                       </span>}]
-
-        set qlist {}
-        set questions [db eval {select * from question order by id desc} values {
-            lappend qlist [question_list_item $values(id) $values(question)]
-        }]
-
-        append page [<div> class container \
-                         [<div> class row \
-                              [<div> class "offset-md-3 col-md-6" \
-                                   [join [list $qadd [<ul> id question-list class list-group [join $qlist \n]]] \n]]]]
-        append page $js
-
-        set r [Html style $r css]
-        return [Http Ok $r $page]
+        Http Redirect $r /login
     }
 
-    proc dbproc { name sql res } {
-        proc $name { r args } [subst -nocommands {
-            Query::with \$r {}
-            db eval {$sql}
-            set lastrowid [db eval {select last_insert_rowid()}]
-            return [Http Ok \$r [::json::write string [subst {{$res}}]] application/json]
-        }]
+    auth /rm-question { r args } {
+        Query::with $r {}
+        question rm $id
+
+        Http Ok $r [::json::write string {"message": "success"}] application/json
     }
 
-    dbproc /new-question {insert into question (question) values ($question)} {"message": "success", "id": "$lastrowid"}
-    dbproc /rm-question {delete from question where id = $id} {"message": "success"}
+    auth /new-question { r args } {
+        Query::with $r {}
+        
+        set id [question add $question [::cookie name $r]]
+
+        Http Ok $r [::json::write string [subst {{"message": "success", "id": "$id"}}]] application/json
+    }
 
     # load the css from ./custom.ss
     proc /css { r args } [subst { set css {[::fread custom.css]}; return \[Http Ok \$r \$css text/css\] }]
