@@ -1,12 +1,26 @@
 package require json::write
 package require sqlite3
 
-proc randint limit {
+proc ::tcl::dict::get? {args} {
+
+    try {                ::set x [dict get {*}$args]
+    } on error message { ::set x {} }
+
+    return $x
+ }
+
+namespace ensemble configure dict -map [dict merge [namespace ensemble configure dict -map] {get? ::tcl::dict::get?}]
+
+proc ::randint limit {
     expr {int(rand() * $limit +1)}
 }
 
+proc ::padfront { s n } {
+    concat [string repeat 0 [expr { $n - [string length $s] }]] $s
+}
+
 namespace eval ::user {
-    proc hash { string } { return [md5::md5 $string] }
+    proc hash { string } { return [base64::encode [md5::md5 $string]] }
 
     proc exists { name } {
         return [db exists {select 1 from user where name = $name}]
@@ -15,6 +29,10 @@ namespace eval ::user {
     proc add { name password } {
         set passhash [hash $password]
         db eval {insert into user (name, password) values ($name, $passhash)}
+    }
+
+    proc rmsession { name } {
+        db eval {update user set session = NULL where name = $name}
     }
 
     proc setsession { name session } {
@@ -26,11 +44,23 @@ namespace eval ::user {
     }
 
     proc newsession { name } {
-        setsession $name [hash [::randint 1e6]]
+        setsession $name [hash [::padfront [::randint 1e6] 64]]
+    }
+
+    proc hassession { name } {
+        getsession $name
+    }
+
+    proc _password { name } {
+        db eval {select password from user where name = $name}
+    }
+
+    proc auth { name password } {
+        expr { [_password $name] eq [hash $password] }
     }
 
     namespace export -clear *
-    namespace ensemble create -subcommands { exists add setsession getsession newsession }
+    namespace ensemble create -subcommands { rmsession auth exists add setsession getsession newsession }
 }
 
 namespace eval ::Sciapp {
@@ -75,7 +105,25 @@ namespace eval ::Sciapp {
         }
     }
 
-    proc /dashboard { r args } {
+    proc /login { r args } {
+        switch [dict get $r -method] {
+            GET {
+                return [login_get $r $args]
+            }
+            POST {
+                return [login_post $r $args]
+            }
+        }
+    }
+
+    proc /logout { r args } {
+        Query::with $r {}
+
+        user rmsession $name
+        Http Redirect $r /login
+    }
+
+    proc login_get { r args } {
         variable headers
 
         dict set r -headers $headers
@@ -83,6 +131,79 @@ namespace eval ::Sciapp {
         
         set page [<div> id "main-title" class "jumbotron" \
                       [<h1> Questions]]
+                         
+        append page [<div> class row \
+                         [<div> class "offset-md-4 col-md-4" \
+                              [<form> action /login method post \
+                                   [join [list [<div> class form-group \
+                                                    [<input> id name name name type text class "new-q-input form-control" placeholder "name" {}]] \
+                                              [<div> class form-group \
+                                                   [<input> id password name password type password class "new-q-input form-control" placeholder "password" {}]] \
+                                              {<button id="register-btn" class="btn sciapp" type="submit">Login</button>}] \
+                                        \n]]]]
+
+        set r [Html style $r css]
+        return [Http Ok $r $page]
+    }
+
+    proc login_post { r args } {
+        Query::with $r {}
+
+        if { [user auth $name $password] } {
+            user newsession $name
+            dict set r -cookies questions [list $name [user getsession $name]]
+
+            # might have to url-encode the name expansion
+            return [Http Redirect $r /dashboard?name=$name]
+        }
+        
+        return [Http Redirect $r /login]
+    }
+
+    proc _cookiename { r } {
+        lindex [dict get? $r -cookies questions] 0
+    }
+
+    proc _cookieval { r }  {
+        lindex [dict get? $r -cookies questions] 1
+    }
+
+    proc _cookie? { r } {
+        expr { [dict get? $r cookies] ne {} }
+    }
+
+    proc _protect { } {
+        set script {if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
+            return [Http Redirect $r /login]
+        }}
+        uplevel $script
+    }
+ 
+    proc /dashboard { r args } {
+        # _protect
+        puts here
+        puts [user getsession [_cookiename $r]]
+        puts [_cookieval $r]
+        if { ![_cookie? $r] } {
+            return [Http Redirect $r /login]
+        }
+        if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
+            return [Http Redirect $r /login]
+        }
+
+        variable headers
+
+        Query::with $r {}
+
+        dict set r -headers $headers
+        dict set r -title Sciapp
+        
+        set page [<div> id "main-title" class "jumbotron" \
+                      [<h1> Questions]]
+
+        append page [<div> class row \
+                         [<div> class "offset-md-2 col-md-4" \
+                              [<span> "Hello, $name"]]]
 
         set r [Html style $r css]
         return [Http Ok $r $page]
@@ -98,8 +219,11 @@ namespace eval ::Sciapp {
 
         user add $name $password
         user newsession $name
+
+        dict set r -cookies questions [user getsession $name]
         
-        return [Http redirect $r /dashboard]
+        # might have to url-encode the name expansion
+        return [Http Redirect $r /dashboard?name=$name]
     }
 
     proc register_get { r args } {
