@@ -1,6 +1,6 @@
 namespace eval ::cookie {
     proc get { r } {
-        if { [Cookies Match $r {-name questions}] } {
+        if { [Cookies Match $r {-name questions}] ne "" } {
             dict get [Cookies Fetch $r {-name questions}] -value
         }
     }
