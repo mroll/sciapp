@@ -118,7 +118,7 @@ namespace eval ::Sciapp {
     }
 
     proc /logout { r args } {
-        Query::with $r {}
+        set name [_cookiename $r]
 
         dict set r set-cookie questions=nil
         user rmsession $name
@@ -158,7 +158,7 @@ namespace eval ::Sciapp {
             dict set r set-cookie "questions=$name [user getsession $name]"
 
             # might have to url-encode the name expansion
-            return [Http Redirect $r /dashboard?name=$name]
+            return [Http Redirect $r /dashboard]
         }
         
         return [Http Redirect $r /login]
@@ -180,25 +180,22 @@ namespace eval ::Sciapp {
         expr { [dict get? $r -cookies] ne {} }
     }
 
-    proc _protect { } {
-        set script {if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
-            return [Http Redirect $r /login]
-        }}
-        uplevel $script
+    proc auth { name args body } {
+        proc $name $args [subst -nocommands {
+            if { [_cookie \$r] eq "nil" } {
+                return [Http Redirect \$r /login]
+            }
+            if { [user getsession [_cookiename \$r]] ne [_cookieval \$r] } {
+                return [Http Redirect \$r /login]
+            }
+            set name [_cookiename \$r]
+
+            $body
+        }]
     }
  
-    proc /dashboard { r args } {
-        # _protect
-        if { [_cookie $r] eq "nil" } {
-            return [Http Redirect $r /login]
-        }
-        if { [user getsession [_cookiename $r]] ne [_cookieval $r] } {
-            return [Http Redirect $r /login]
-        }
-
+    auth /dashboard { r args } {
         variable headers
-
-        Query::with $r {}
 
         dict set r -headers $headers
         dict set r -title Sciapp
@@ -208,7 +205,9 @@ namespace eval ::Sciapp {
 
         append page [<div> class row \
                          [<div> class "offset-md-2 col-md-4" \
-                              [<span> "Hello, $name"]]]
+                              [join [list [<span> "Hello, $name"] \
+                                         {<a href="/logout" style="border-radius: 0;" class="list-group-item list-group-item-action">Logout</a>}] \
+                                   \n]]]
 
         set r [Html style $r css]
         return [Http Ok $r $page]
