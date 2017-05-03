@@ -1,2 +1,2 @@
-source sciapp.tcl
+source sciapp/sciapp.tcl
 
