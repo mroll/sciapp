@@ -89,7 +89,7 @@ namespace eval ::Sciapp {
     proc question_list_item { id question } {
         return "<div class=\"qrow input-group\"> \
                   <a href=\"/question?$id\" style=\"border-radius: 0;\" class=\"list-group-item list-group-item-action\">$question</a> \
-                  <span class=\"new-q-input input-group-btn\"> \
+                  <span class=\"user-input-lg input-group-btn\"> \
                     <button data-id=\"$id\" class=\"rm-question btn btn-secondary\" type=\"button\">-</button> \
                   </span>
                 </div>"
@@ -137,13 +137,7 @@ namespace eval ::Sciapp {
                          
         append page [<div> class row \
                          [<div> class "offset-md-4 col-md-4" \
-                              [<form> action /login method post \
-                                   [join [list [<div> class form-group \
-                                                    [<input> id name name name type text class "new-q-input form-control" placeholder "name" {}]] \
-                                              [<div> class form-group \
-                                                   [<input> id password name password type password class "new-q-input form-control" placeholder "password" {}]] \
-                                              {<button id="register-btn" class="btn sciapp" type="submit">Login</button>}] \
-                                        \n]]]]
+                              [<usercreds> /login Login]]]
 
         set r [Html style $r css]
         return [Http Ok $r $page]
@@ -154,10 +148,8 @@ namespace eval ::Sciapp {
 
         if { [user auth $name $password] } {
             user newsession $name
-
             dict set r set-cookie "questions=$name [user getsession $name]"
 
-            # might have to url-encode the name expansion
             return [Http Redirect $r /dashboard]
         }
         
@@ -223,11 +215,19 @@ namespace eval ::Sciapp {
 
         user add $name $password
         user newsession $name
-
-        # dict set r -cookies questions [user getsession $name]
+        dict set r set-cookie "questions=$name [user getsession $name]"
         
-        # might have to url-encode the name expansion
         return [Http Redirect $r /dashboard?name=$name]
+    }
+
+    proc <usercreds> { url btntext } {
+        return [<form> action $url method post \
+                    [join [list [<div> class form-group \
+                                     [<input> id name name name type text class "user-input-lg form-control" placeholder "name" {}]] \
+                               [<div> class form-group \
+                                    [<input> id password name password type password class "user-input-lg form-control" placeholder "password" {}]] \
+                               {<button id="register-btn" class="btn sciapp" type="submit">$btntext</button>}] \
+                         \n]]
     }
 
     proc register_get { r args } {
@@ -239,16 +239,9 @@ namespace eval ::Sciapp {
         set page [<div> id "main-title" class "jumbotron" \
                       [<h1> Questions]]
 
-
         append page [<div> class row \
                          [<div> class "offset-md-4 col-md-4" \
-                              [<form> action /register method post \
-                                   [join [list [<div> class form-group \
-                                                    [<input> id name name name type text class "new-q-input form-control" placeholder "name" {}]] \
-                                              [<div> class form-group \
-                                                   [<input> id password name password type password class "new-q-input form-control" placeholder "password" {}]] \
-                                              {<button id="register-btn" class="btn sciapp" type="submit">Register</button>}] \
-                                        \n]]]]
+                              [<usercreds> /register Register]]]
                                         
         set r [Html style $r css]
         return [Http Ok $r $page]
@@ -284,7 +277,7 @@ namespace eval ::Sciapp {
 
                               $(`<div class="qrow input-group">
                                    <a href="/question?${id}" style="border-radius: 0;" class="list-group-item list-group-item-action">${question}</a>
-                                   <span class="new-q-input input-group-btn">
+                                   <span class="user-input-lg input-group-btn">
                                      <button data-id="${id}" class="rm-question btn btn-secondary" type="button">-</button>
                                    </span>
                                  </div>`).prependTo('#question-list');
@@ -314,9 +307,9 @@ namespace eval ::Sciapp {
         }
 
         set qadd [<div> class input-group \
-                      {<input id="question" type="text" class="new-q-input form-control" placeholder="Ask anything...">
+                      {<input id="question" type="text" class="user-input-lg form-control" placeholder="Ask anything...">
                        <span style="margin-bottom: 15px;"
-                             class="new-q-input input-group-btn">
+                             class="user-input-lg input-group-btn">
                           <button id="add-question" class="btn btn-secondary" type="button">+</button>
                        </span>}]
 
@@ -349,6 +342,7 @@ namespace eval ::Sciapp {
 
     proc /css { r args } {
         set css {
+
             /** could break this into regular and inverted classes **/
             .sciapp {
               background-color: #700cce;
@@ -359,12 +353,11 @@ namespace eval ::Sciapp {
 
             body {
                 background-color: white;
-              font-family: 'Slabo 27px', serif;
+                font-family: 'Slabo 27px', serif;
             }
 
-            .new-q-input {
+            .user-input-lg {
                 font-family: 'Slabo 27px', serif;
-                height: 50px;
                 border-radius: 0;
             }
 
