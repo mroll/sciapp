@@ -6,6 +6,10 @@
     font-family: 'Slabo 27px', serif;
 }
 
+.sciapp-inverse {
+    background-color: white;
+}
+
 body {
     background-color: white;
     font-family: 'Slabo 27px', serif;
@@ -37,6 +41,23 @@ hr {
     color: white;
 }
 
+.list-group-item {
+    margin-bottom: 0;
+}
+
+.list-group-item:last-child {
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+.btn-list-group {
+    font-family: 'Slabo 27px';
+    border-radius: 0;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    cursor: pointer;
+}
+
 #add-question {
     cursor: pointer;
     border-radius: 0;
@@ -45,8 +66,8 @@ hr {
 
 .rm-question {
     cursor: pointer;
-    border-radius: 0;
     width: 75px;
+    border-radius: 0;
 }
 
 #name {
