@@ -45,8 +45,8 @@ proc ::<usercreds> { url btntext } {
 
 proc ::<post> { url args } {
     set onchange_js {
-        \$('#@id').on('input', e => \{
-            \$('#_@id').val(e.target.value);
+        \\\$('#@id').on('input', e => \{
+            \\\$('#_@id').val(e.target.value);
         \});
     }
 
@@ -69,7 +69,7 @@ proc ::<post> { url args } {
                      {*}[lmap id [dict get $args -ids] { <input> type hidden name "_$id" id "_$id" {} }] \
                      [string map "@cbs $onchange_callbacks" {
                          <script>
-                         \$(document).ready(() => {
+                         \\\$(document).ready(() => {
                              @cbs
                          });
                          </script>
