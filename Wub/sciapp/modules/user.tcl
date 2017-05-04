@@ -1,4 +1,5 @@
 namespace eval ::user {
+    # should move this to use ::md5::md5crypt with a salt
     proc hash { string } { return [base64::encode [md5::md5 $string]] }
 
     proc exists { name } {
