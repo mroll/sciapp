@@ -27,7 +27,7 @@ namespace eval ::user {
     }
 
     proc hassession { name } {
-        getsession $name
+        expr { [getsession $name] ne "" }
     }
 
     proc id { name } {

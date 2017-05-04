@@ -12,12 +12,17 @@ namespace eval ::Sciapp {
 
     proc auth { name args body } {
         proc $name $args [subst -nocommands {
+            # if there is no cookie, or if the session cookie does not equal
+            # the one stored in the db for the given name, redirect to login.
             if { [::cookie get \$r] eq "nil" } {
                 return [Http Redirect \$r /login]
             }
             if { [user getsession [::cookie name \$r]] ne [::cookie val \$r] } {
                 return [Http Redirect \$r /login]
             }
+
+            # put the variable 'name' in scope with the value found in
+            # the cookie.
             set name [::cookie name \$r]
             
             $body
