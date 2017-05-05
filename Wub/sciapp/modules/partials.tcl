@@ -51,18 +51,12 @@ proc ::<post> { url args } {
     }
 
     set onchange_callbacks [list [join [lmap id [dict get $args -ids] { string map "@id $id" $onchange_js }] \n]]
-    set themeclass [if { [dict exists $args -style] } {
-        if { [dict get $args -style] eq "reg" } {
-            set rtn sciapp
-            set rtn
-        } else {
-            set rtn sciapp-inverse
-            set rtn
+    set themeclass sciapp
+    if { [dict exists $args -style] } {
+        if { [dict get $args -style] eq "inv" } {
+            set themeclass sciapp-inverse
         }
-    } else {
-        set rtn sciapp
-        set rtn
-    }]
+    }
 
     return [<form> action $url method post \
                 [<siblings> \

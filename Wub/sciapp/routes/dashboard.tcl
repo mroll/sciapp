@@ -63,7 +63,7 @@ auth /dashboard { r args } {
                                [<div> class "col-md-2" \
                                     [<nav> \
                                          /hypothesis {-text Hypothesis} \
-                                         /design {-text {Experimental Design}} \
+                                         /design {-text {Experiment Design}} \
                                          /measurements {-text Measurements} \
                                          /analysis {-text Analysis} \
                                          /conclusions {-text Conclusions} \
