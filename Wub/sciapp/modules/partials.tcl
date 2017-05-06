@@ -59,9 +59,9 @@ namespace eval ::_html {
     proc usercreds { url btntext } {
         return [<form> action $url method post \
                  [siblings \
-                   [<div> class form-group \
+                   [<div> \
                      [<input> id name name name type text class "form-control user-input-lg sciapp-inverse" placeholder "name" {}]] \
-                     [<div> class form-group \
+                     [<div> \
                        [<input> id password name password type password class "form-control user-input-lg sciapp-inverse" placeholder "password" {}]] \
                       [post $url -text $btntext -ids {name password}]]]
     }
@@ -117,6 +117,8 @@ namespace eval ::_html {
         set pos "my: \"center\", at: \"center\", of: window"
         set width {"auto"}
         set height {"auto"}
+        set dialogClass "no-close"
+        set classes {}
 
         # these conditionals can definitely be generalized and shortened.
         if { [dict exists $kwargs -pos] } {
@@ -142,17 +144,18 @@ namespace eval ::_html {
             <script>
             $(document).ready(() => {
                 $("#@id").dialog({
-                    dialogClass: 'no-close',
+                    dialogClass: "no-close",
                     resizable: false,
                     position: {@pos},
+                    minHeight: 0,
                     height: @height,
-                    width: @width
+                    width: @width,
                 });
             });
             </script>
         }]
 
-        siblings $js [col {} id $id {*}$kwargs $child]
+        siblings [col {} id $id {*}$kwargs $child] $js 
     }
 
 }

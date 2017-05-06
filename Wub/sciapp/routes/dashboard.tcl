@@ -49,7 +49,7 @@ auth /dashboard { r args } {
     set page [<div> id "main-title" class "jumbotron" \
                   [<h1> Scope]]
 
-    set qadd [<div> class input-group style "margin-bottom: 10px;" \
+    set qadd [<div> class input-group \
                   {<input id="question" type="text" class="form-control" placeholder="Ask anything...">
                    <span>
                     <button id="add-question" class="btn btn-secondary" type="button">+</button>

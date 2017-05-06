@@ -20,8 +20,7 @@ proc login_get { r args } {
     set page [<div> id "main-title" class "jumbotron" \
                   [<h1> Scope]]
     
-    append page [_html::box credentials \
-                     -width 650 \
+    append page [_html::box credentials -width 650 \
                      [_html::usercreds /login Login]]
 
     set r [Html style $r css]
