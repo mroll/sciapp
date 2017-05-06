@@ -7,11 +7,27 @@ auth /hypothesis { r args } {
 	set page [<div> id "main-title" class "jumbotron" \
                   [<h1> Hypothesis]]
 
-    append page [<div> class row \
-                     [<div> class "offset-md-1 col-md-2" \
-                            [ <siblings> [<span> "Sciapp"] \
-							{<a href="/dashboard" style="border-radius: 0;" class="list-group-item list-group-item-action">Dashboard</a>} \
-							{<a href="/logout" style="border-radius: 0;" class="list-group-item list-group-item-action">Logout</a>}]]]
+	append page [_html::container \
+                     [_html::row \
+                          [_html::siblings \
+                               [_html::box mainmenu \
+                                    title {Main Menu} \
+                                    -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" } \
+                                    -width 300 \
+                                    [_html::nav \
+										 /dashboard {-text Dashboard} \
+                                         /hypothesis {-text Hypothesis} \
+                                         /design {-text {Experiment Design}} \
+                                         /measurements {-text Measurements} \
+                                         /analysis {-text Analysis} \
+                                         /conclusions {-text Conclusions} \
+                                         /test {-text Test -ids {question} -style inv}]] \
+                               [_html::box logout \
+                                    title {Logout} \
+                                    -pos { my "right-15 top+15" at "right bottom" of ".jumbotron" } \
+                                    -width 300 \
+                                    -hidetitle 1 \
+                                    [<div> [_html::nav /logout {-text Logout}]]]]]]
 
 	set r [Html style $r css]
 	return [Http Ok $r $page]
