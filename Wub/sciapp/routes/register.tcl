@@ -21,7 +21,7 @@ proc register_post { r args } {
     user newsession $name
     dict set r set-cookie "questions=$name [user getsession $name]"
     
-    return [Http Redirect $r /dashboard?name=$name]
+    return [Http Redirect $r /dashboard]
 }
 
 
@@ -29,7 +29,7 @@ proc register_get { r args } {
     setup r
 
     set page [<div> id "main-title" class "jumbotron" \
-                  [<h1> Questions]]
+                  [<h1> Scope]]
 
     append page [_html::box credentials \
                      -width 650 \
