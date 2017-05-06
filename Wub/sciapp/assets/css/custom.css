@@ -8,16 +8,12 @@
 
 .sciapp-inverse {
     background-color: white;
+    font-family: 'Slabo 27px', serif;
 }
 
 body {
     background-color: white;
     font-family: 'Slabo 27px', serif;
-}
-
-.user-input-lg {
-    font-family: 'Slabo 27px', serif;
-    border-radius: 0;
 }
 
 #main-title {
@@ -30,6 +26,12 @@ hr {
     position: relative;
     top: -20px;
     width: 70%;
+}
+
+.user-input-lg {
+    width: 100%;
+    border-radius: 0;
+    font-family: 'Slabo 27px';
 }
 
 .jumbotron {
@@ -78,3 +80,46 @@ hr {
     width: 100%;
     cursor: pointer;
 }
+
+/** jQuery UI theme **/
+
+.ui-corner-all {
+    border-radius: 0;
+}
+
+.ui-widget-content {
+    background-color: white;
+}
+
+.ui-dialog {
+    border-radius: 0;
+    padding: 0;
+}
+
+.no-close .ui-dialog-titlebar-close {
+    display: none;
+}
+
+.ui-widget-header {
+    border: 0;
+    background: none;
+    background-color: #700cce;
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-widget-content {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-widget input {
+    width: 100%;
+    border-radius: 0;
+    font-family: 'Slabo 27px';
+}
+
+.ui-widget button {
+    border-radius: 0;
+    font-family: 'Slabo 27px';
+    text-align: center;
+}
+

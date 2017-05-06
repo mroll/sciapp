@@ -26,17 +26,14 @@ proc register_post { r args } {
 
 
 proc register_get { r args } {
-    variable headers
-
-    dict set r -headers $headers
-    dict set r -title Sciapp
+    setup r
 
     set page [<div> id "main-title" class "jumbotron" \
                   [<h1> Questions]]
 
-    append page [<div> class row \
-                     [<div> class "offset-md-4 col-md-4" \
-                          [<usercreds> /register Register]]]
+    append page [_html::box credentials \
+                     -width 650 \
+                     [_html::usercreds /register Register]]
     
     set r [Html style $r css]
     return [Http Ok $r $page]

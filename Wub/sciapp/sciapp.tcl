@@ -6,8 +6,27 @@ foreach f [glob ${::sciapp_home}/modules/*] { source $f }
 
 
 namespace eval ::Sciapp {
+    variable headers [_html::siblings \
+                          [_html::jquery] \
+                          [_html::jqueryui] \
+                          [_html::jqueryui-css] \
+                          [_html::bootstrap] \
+                          [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
+
     proc init { file } {
         sqlite3 db $file
+    }
+
+    proc setup { rname } {
+        set script [subst -nocommands {
+            variable headers
+            dict set $rname -headers \$headers
+            dict set $rname -title Scope
+
+            set name [::cookie name \$$rname]
+        }]
+
+        uplevel $script
     }
 
     proc auth { name args body } {
@@ -21,18 +40,11 @@ namespace eval ::Sciapp {
                 return [Http Redirect \$r /login]
             }
 
-            # put the variable 'name' in scope with the value found in
-            # the cookie.
-            set name [::cookie name \$r]
+            setup r
             
             $body
         }]
     }
-
-    variable headers [<siblings> [<jquery>] \
-                          [<bootstrap>] \
-                          [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
-                          
 
     # set the landing page
     proc / { r args } {
