@@ -77,55 +77,72 @@ hr {
     cursor: pointer;
 }
 
-/** jQuery UI theme **/
-
-.ui-corner-all {
+.form-control {
     border-radius: 0;
-}
-
-.ui-widget-content {
-    background-color: white;
-}
-
-.ui-dialog .ui-dialog-content {
-    min-height: 0;
-    padding: 0;
 }
 
 .hide {
     display: none;
 }
 
-.ui-dialog {
+
+/** jQuery UI theme **/
+
+.ui-widget.custom {
+    font-family: 'Slabo 27px', serif;
     border-radius: 0;
+}
+
+.ui-widget-content.custom {
+    font-family: 'Slabo 27px', serif;
+    color: white;
+}
+
+.ui-widget-content.sciapp {
+    color: white;
+}
+
+.ui-dialog.custom {
+    font-family: 'Slabo 27px', serif;
     padding: 0;
+}
+
+.ui-widget.custom button {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-widget.custom input {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-dialog.custom .ui-dialog-content {
+    font-family: 'Slabo 27px', serif;
+    padding: 0;
+}
+
+.ui-dialog.custom .ui-widget-header {
+    background: #700cce;
+    border-radius: 0;
+}
+
+.ui-dialog.custom .ui-dialog-titlebar {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-dialog.custom.notitle .ui-dialog-titlebar {
+    display: none;
+}
+
+.ui-dialog.custom.padded {
+    padding: 10px;
+}
+
+.ui-dialog.custom.padded input {
+    margin-bottom: 3px;
 }
 
 .no-close .ui-dialog-titlebar-close {
     display: none;
 }
 
-.ui-widget-header {
-    display: none;
-}
-
-.ui-widget-content {
-    font-family: 'Slabo 27px', serif;
-}
-
-.dialog-padded {
-    padding: 10px;
-}
-
-.ui-widget input {
-    width: 100%;
-    border-radius: 0;
-    font-family: 'Slabo 27px';
-}
-
-.ui-widget button {
-    border-radius: 0;
-    font-family: 'Slabo 27px';
-    text-align: center;
-}
 

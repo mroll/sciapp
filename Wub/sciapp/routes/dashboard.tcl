@@ -38,10 +38,6 @@ auth /dashboard { r args } {
 
             $('.rm-question').click(qdelete);
 
-            $( "#mainmenu" ).dialog({
-                dialogClass: 'no-close',
-                resizable: false,
-            });
         });
         </script>
     }]
@@ -75,12 +71,14 @@ auth /dashboard { r args } {
                                     title {Add Question} \
                                     -pos { my "center top+15" at "center bottom" of ".jumbotron" } \
                                     -width 450 \
+                                    -hidetitle 1 \
                                     [_html::siblings $qadd [<ul> id question-list class list-group \
                                                                 [_html::siblings {*}$qlist]]]] \
                                [_html::box logout \
                                     title {Logout} \
                                     -pos { my "right-15 top+15" at "right bottom" of ".jumbotron" } \
                                     -width 300 \
+                                    -hidetitle 1 \
                                     [<div> [_html::nav /logout {-text Logout}]]]]]]
 
     append page $js

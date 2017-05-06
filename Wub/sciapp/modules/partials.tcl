@@ -96,9 +96,19 @@ namespace eval ::_html {
     }
 
     proc get { url args } {
+        set class "list-group-item list-group-item-action nav-link" 
+        set style "border-radius: 0; padding-bottom: 5px; padding-top: 5px;" 
+        if { [dict exists $args -style] } {
+            append style [dict get $args -style]
+        }
+        if { [dict exists $args -class] } {
+            lappend class [dict get $args -class]
+        }
+
         <a> href $url \
-            class "list-group-item list-group-item-action nav-link" \
-            style "border-radius: 0; padding-bottom: 5px; padding-top: 5px;" [dict get $args -text]
+            class $class \
+            style $style \
+            [dict get $args -text]
     }
 
     proc nav { args } {
@@ -117,8 +127,7 @@ namespace eval ::_html {
         set pos "my: \"center\", at: \"center\", of: window"
         set width {"auto"}
         set height {"auto"}
-        set dialogClass "no-close"
-        set classes {}
+        set dialogClass "no-close custom"
 
         # these conditionals can definitely be generalized and shortened.
         if { [dict exists $kwargs -pos] } {
@@ -126,6 +135,7 @@ namespace eval ::_html {
             set at [dict get $kwargs -pos at]
             set of [dict get $kwargs -pos of]
 
+            # use Html's dict2json for this
             set pos [string map [list @my $my @at $at @of $of] {my: "@my", at: "@at", of: "@of"}]
 
             dict unset kwargs -pos
@@ -138,13 +148,21 @@ namespace eval ::_html {
             set width [dict get $kwargs -height]
             dict unset kwargs -height
         }
+        if { [dict exists $kwargs -hidetitle] } {
+            lappend dialogClass notitle
+            dict unset kwargs -hidetitle
+        }
+        if { [dict exists $kwargs -padded] } {
+            lappend dialogClass padded
+            dict unset kwargs -padded
+        }
 
-        set context [list @id $id @pos $pos @height $height @width $width]
+        set context [list @id $id @pos $pos @height $height @width $width @dialogClass $dialogClass]
         set js [string map $context {
             <script>
             $(document).ready(() => {
                 $("#@id").dialog({
-                    dialogClass: "no-close",
+                    dialogClass: "@dialogClass",
                     resizable: false,
                     position: {@pos},
                     minHeight: 0,
