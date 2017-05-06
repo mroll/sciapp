@@ -8,11 +8,10 @@ auth /hypothesis { r args } {
                   [<h1> Hypothesis]]
 
     append page [<div> class row \
-                     [<div> class "offset-md-2 col-md-4" \
-                          [<siblings> [<span> "Hello, $name"] \
-                               {<a href="/dashboard" style="border-radius: 0;" class="list-group-item list-group-item-action">Dashboard</a>} \
-                               {<a href="/hypothesis" style="border-radius: 0;" class="list-group-item list-group-item-action">Hypothesis</a>} \
-							   {<a href="/logout" style="border-radius: 0;" class="list-group-item list-group-item-action">Logout</a>}]]]
+                     [<div> class "offset-md-1 col-md-2" \
+                            [ <siblings> [<span> "Sciapp"] \
+							{<a href="/dashboard" style="border-radius: 0;" class="list-group-item list-group-item-action">Dashboard</a>} \
+							{<a href="/logout" style="border-radius: 0;" class="list-group-item list-group-item-action">Logout</a>}]]]
 
 	set r [Html style $r css]
 	return [Http Ok $r $page]
