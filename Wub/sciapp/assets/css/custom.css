@@ -6,14 +6,14 @@
     font-family: 'Slabo 27px', serif;
 }
 
-body {
+.sciapp-inverse {
     background-color: white;
     font-family: 'Slabo 27px', serif;
 }
 
-.user-input-lg {
+body {
+    background-color: white;
     font-family: 'Slabo 27px', serif;
-    border-radius: 0;
 }
 
 #main-title {
@@ -28,6 +28,12 @@ hr {
     width: 70%;
 }
 
+.user-input-lg {
+    width: 100%;
+    border-radius: 0;
+    font-family: 'Slabo 27px';
+}
+
 .jumbotron {
     border-radius: 0;
 }
@@ -35,6 +41,23 @@ hr {
 .list-group-item:hover {
     background-color: #700cce;
     color: white;
+}
+
+.list-group-item {
+    margin-bottom: 0;
+}
+
+.list-group-item:last-child {
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+.btn-list-group {
+    font-family: 'Slabo 27px';
+    border-radius: 0;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    cursor: pointer;
 }
 
 #add-question {
@@ -45,8 +68,8 @@ hr {
 
 .rm-question {
     cursor: pointer;
-    border-radius: 0;
     width: 75px;
+    border-radius: 0;
 }
 
 #name {
@@ -57,3 +80,46 @@ hr {
     width: 100%;
     cursor: pointer;
 }
+
+/** jQuery UI theme **/
+
+.ui-corner-all {
+    border-radius: 0;
+}
+
+.ui-widget-content {
+    background-color: white;
+}
+
+.ui-dialog {
+    border-radius: 0;
+    padding: 0;
+}
+
+.no-close .ui-dialog-titlebar-close {
+    display: none;
+}
+
+.ui-widget-header {
+    border: 0;
+    background: none;
+    background-color: #700cce;
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-widget-content {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-widget input {
+    width: 100%;
+    border-radius: 0;
+    font-family: 'Slabo 27px';
+}
+
+.ui-widget button {
+    border-radius: 0;
+    font-family: 'Slabo 27px';
+    text-align: center;
+}
+
