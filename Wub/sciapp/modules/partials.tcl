@@ -58,19 +58,19 @@ namespace eval ::_html {
 
     proc usercreds { url btntext } {
         return [<form> action $url method post \
-                 [siblings \
-                   [<div> \
-                     [<input> id name name name type text class "form-control user-input-lg sciapp-inverse" placeholder "name" {}]] \
-                     [<div> \
-                       [<input> id password name password type password class "form-control user-input-lg sciapp-inverse" placeholder "password" {}]] \
-                      [post $url -text $btntext -ids {name password}]]]
+                    [siblings \
+                         [<div> \
+                              [<input> id name name name type text class "form-control user-input-lg sciapp-inverse" placeholder "name" {}]] \
+                         [<div> \
+                              [<input> id password name password type password class "form-control user-input-lg sciapp-inverse" placeholder "password" {}]] \
+                         [post $url -text $btntext -ids {name password}]]]
     }
 
     proc post { url args } {
         set onchange_js {
             \\\$('#@id').on('input', e => \{
-              \\\$('#_@id').val(e.target.value);
-            \});
+                            \\\$('#_@id').val(e.target.value);
+                            \});
         }
 
         set onchange_callbacks [list [join [lmap id [dict get $args -ids] { string map "@id $id" $onchange_js }] \n]]
@@ -114,11 +114,11 @@ namespace eval ::_html {
     proc nav { args } {
         return [<ul> class "nav flex-column" \
                     [siblings {*}[lmap { url txt } $args { <li> class nav-item \
-                                                                 [if { [dict exists $txt -ids] } {
-                                                                     post $url {*}$txt
-                                                                 } else {
-                                                                     get $url {*}$txt
-                                                                 }] }]]]
+                                                               [if { [dict exists $txt -ids] } {
+                                                                   post $url {*}$txt
+                                                               } else {
+                                                                   get $url {*}$txt
+                                                               }] }]]]
     }
 
     proc lgroup_item { txt args } {
@@ -135,14 +135,6 @@ namespace eval ::_html {
         <span> {*}$id class "list-group-item $class" style "border-radius: 0;" $txt
     }
 
-    proc js_lgroup_item { txt args } {
-        (txt, args) => {
-            var class = "list-text";
-
-            return `<span class=${class} style="border-radius: 0;">${txt}</span>`
-        });
-    }
-
     proc dirlink { cwd path dialogid } {
         set dir [regsub -all / $path _]
         set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
@@ -150,6 +142,7 @@ namespace eval ::_html {
             $(document).ready(() => {
                 $('#@dir').on('click', () => {
                     $.post('/api/ls', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
+                        $('#@dialogid').dialog("option", "resizable", false);
                         $('#@dialogid').html(JSON.parse(data).html);
                     });
                 });
@@ -158,8 +151,43 @@ namespace eval ::_html {
         }]
 
         if { $path eq "UPDIR" } { set path .. }
+        if { $path eq "DOTDIR" } { set path . }
 
         siblings $js [lgroup_item $path -id $dir]
+    }
+
+    proc filelink { cwd path dialogid } {
+        set dir [regsub -all {\.} $path _]
+        set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
+            <script>
+            $(document).ready(() => {
+                $('#@dir').on('click', () => {
+                    $.post('/api/preview', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
+                        console.log(data.html);
+                        $('#@dialogid').dialog("option", "width", 500);
+                        $('#@dialogid').dialog("option", "resizable", true);
+                        $('#@dialogid').html(data.html);
+                    });
+                });
+            });
+            </script>
+        }]
+
+        siblings $js [lgroup_item $path -id $dir]
+    }
+
+    proc html_escape { string } {
+        set patterns { & \\&amp\; < \\&lt\; > \\&gt\; }
+        dict for {k v} $patterns  {
+            set string [regsub -all $k $string $v]
+        }
+        set string
+    }
+
+    proc preview { cwd path dialogid } {
+        menulist \
+            [dirlink $cwd DOTDIR $dialogid] \
+            [<pre> style "font-size: 10px;" [html_escape [exec cat $cwd/$path]]]
     }
 
     proc files { path } {
@@ -176,9 +204,8 @@ namespace eval ::_html {
             {*}[lmap f [files $cwd] { if { [file isdirectory $cwd/$f] } {
                 dirlink $cwd $f $dialogid
             } else {
-                lgroup_item $f
-            }
-            }]
+                filelink $cwd $f $dialogid
+            }}]
     }
 
     proc box { id args } {
@@ -213,7 +240,7 @@ namespace eval ::_html {
                     dict unset kwargs -width
                 }
                 -height {
-                    set width [dict get $kwargs -height]
+                    set height [dict get $kwargs -height]
                     dict unset kwargs -height
                 }
                 -hidetitle {
@@ -241,7 +268,7 @@ namespace eval ::_html {
                     resizable: false,
                     position: {@pos},
                     minHeight: 0,
-                    height: @height,
+                    maxHeight: @height,
                     width: @width,
                 });
             });

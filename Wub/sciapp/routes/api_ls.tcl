@@ -5,6 +5,9 @@ auth /api/ls { r args } {
     if { $dir eq "UPDIR" } {
         set dir ..
     }
+    if { $dir eq "DOTDIR" } {
+        set dir .
+    }
 
     # escape newlines and quotes
     set files [regsub -all \n [_html::ls $cwd/$dir $dir $dialog] \\n]
