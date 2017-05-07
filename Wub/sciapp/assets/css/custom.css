@@ -45,6 +45,12 @@ hr {
 
 .list-group-item {
     margin-bottom: 0;
+    cursor: pointer;
+    padding: 0;
+}
+
+.list-group-item.text {
+    margin-left: 5px;
 }
 
 .list-group-item:last-child {
@@ -52,12 +58,8 @@ hr {
     border-radius: 0;
 }
 
-.btn-list-group {
-    font-family: 'Slabo 27px';
-    border-radius: 0;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    cursor: pointer;
+.list-text {
+    padding-left: 15px;
 }
 
 #add-question {

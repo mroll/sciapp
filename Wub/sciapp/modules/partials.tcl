@@ -121,6 +121,66 @@ namespace eval ::_html {
                                                                  }] }]]]
     }
 
+    proc lgroup_item { txt args } {
+        set class list-text
+        set id {}
+
+        dict for {k v} $args {
+            switch $k {
+                -class { set class $v }
+                -id { set id [list id $v] }
+            }
+        }
+        
+        <span> {*}$id class "list-group-item $class" style "border-radius: 0;" $txt
+    }
+
+    proc js_lgroup_item { txt args } {
+        (txt, args) => {
+            var class = "list-text";
+
+            return `<span class=${class} style="border-radius: 0;">${txt}</span>`
+        });
+    }
+
+    proc dirlink { cwd path dialogid } {
+        set dir [regsub -all / $path _]
+        set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
+            <script>
+            $(document).ready(() => {
+                $('#@dir').on('click', () => {
+                    $.post('/api/ls', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
+                        $('#@dialogid').html(JSON.parse(data).html);
+                    });
+                });
+            });
+            </script>
+        }]
+
+        if { $path eq "UPDIR" } { set path .. }
+
+        siblings $js [lgroup_item $path -id $dir]
+    }
+
+    proc files { path } {
+        split [exec ls -1 $path] \n
+    }
+
+    proc menulist { args } {
+        return [<ul> class "nav flex-column" [siblings {*}$args]]
+    }
+
+    proc ls { cwd path dialogid } {
+        menulist \
+            [dirlink $cwd UPDIR $dialogid] \
+            {*}[lmap f [files $cwd] { if { [file isdirectory $cwd/$f] } {
+                dirlink $cwd $f $dialogid
+            } else {
+                lgroup_item $f
+            }
+            }]
+    }
+
     proc box { id args } {
         set kwargs [lrange $args 0 end-1]
         set child [lindex $args end]
@@ -128,40 +188,55 @@ namespace eval ::_html {
         set width {"auto"}
         set height {"auto"}
         set dialogClass "no-close custom"
+        set title $id
 
-        # these conditionals can definitely be generalized and shortened.
-        if { [dict exists $kwargs -pos] } {
-            set my [dict get $kwargs -pos my]
-            set at [dict get $kwargs -pos at]
-            set of [dict get $kwargs -pos of]
+        # parse keyword arguments out of the dictionary.
+        # might be a way to put this all in a single proc..
+        #     kwargs $kwargs
+        # and then all the names of the keys would be in
+        # scope in just the right way to be subst'd into
+        # the template string.
+        dict for {k v} $kwargs {
+            switch $k {
+                -pos {
+                    set my [dict get $kwargs -pos my]
+                    set at [dict get $kwargs -pos at]
+                    set of [dict get $kwargs -pos of]
 
-            # use Html's dict2json for this
-            set pos [string map [list @my $my @at $at @of $of] {my: "@my", at: "@at", of: "@of"}]
+                    # use Html's dict2json for this
+                    set pos [string map [list @my $my @at $at @of $of] {my: "@my", at: "@at", of: "@of"}]
 
-            dict unset kwargs -pos
-        }
-        if { [dict exists $kwargs -width] } {
-            set width [dict get $kwargs -width]
-            dict unset kwargs -width
-        }
-        if { [dict exists $kwargs -height] } {
-            set width [dict get $kwargs -height]
-            dict unset kwargs -height
-        }
-        if { [dict exists $kwargs -hidetitle] } {
-            lappend dialogClass notitle
-            dict unset kwargs -hidetitle
-        }
-        if { [dict exists $kwargs -padded] } {
-            lappend dialogClass padded
-            dict unset kwargs -padded
+                    dict unset kwargs -pos
+                }
+                -width {
+                    set width [dict get $kwargs -width]
+                    dict unset kwargs -width
+                }
+                -height {
+                    set width [dict get $kwargs -height]
+                    dict unset kwargs -height
+                }
+                -hidetitle {
+                    lappend dialogClass notitle
+                    dict unset kwargs -hidetitle
+                }
+                -padded {
+                    lappend dialogClass padded
+                    dict unset kwargs -padded
+                }
+                -title {
+                    set title [dict get $kwargs -title]
+                    dict unset kwargs -title
+                }
+            }
         }
 
-        set context [list @id $id @pos $pos @height $height @width $width @dialogClass $dialogClass]
+        set context [list @id $id @title $title @pos $pos @height $height @width $width @dialogClass $dialogClass]
         set js [string map $context {
             <script>
             $(document).ready(() => {
                 $("#@id").dialog({
+                    title: "@title",
                     dialogClass: "@dialogClass",
                     resizable: false,
                     position: {@pos},

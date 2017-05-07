@@ -53,33 +53,32 @@ auth /dashboard { r args } {
 
     set qlist [lmap { id q } [user questions $name] { _html::qlistitem $id $q }]
 
-    append page [_html::container \
-                     [_html::row \
-                          [_html::siblings \
-                               [_html::box mainmenu \
-                                    title {Main Menu} \
-                                    -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" } \
-                                    -width 300 \
-                                    [_html::nav \
-                                         /hypothesis {-text Hypothesis} \
-                                         /design {-text {Experiment Design}} \
-                                         /measurements {-text Measurements} \
-                                         /analysis {-text Analysis} \
-                                         /conclusions {-text Conclusions} \
-                                         /test {-text Test -ids {question} -style inv}]] \
-                               [_html::box question-input \
-                                    title {Add Question} \
-                                    -pos { my "center top+15" at "center bottom" of ".jumbotron" } \
-                                    -width 450 \
-                                    -hidetitle 1 \
-                                    [_html::siblings $qadd [<ul> id question-list class list-group \
-                                                                [_html::siblings {*}$qlist]]]] \
-                               [_html::box logout \
-                                    title {Logout} \
-                                    -pos { my "right-15 top+15" at "right bottom" of ".jumbotron" } \
-                                    -width 300 \
-                                    -hidetitle 1 \
-                                    [<div> [_html::nav /logout {-text Logout}]]]]]]
+    append page [_html::siblings \
+                     [_html::box mainmenu \
+                          -title {Main Menu} \
+                          -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" } \
+                          -width 300 \
+                          [_html::nav \
+                               /hypothesis {-text Hypothesis} \
+                               /design {-text {Experiment Design}} \
+                               /measurements {-text Measurements} \
+                               /analysis {-text Analysis} \
+                               /conclusions {-text Conclusions} \
+                               /test {-text Test -ids {question} -style inv}]] \
+                     [_html::box question-input \
+                          title {Add Question} \
+                          -pos { my "center top+15" at "center bottom" of ".jumbotron" } \
+                          -width 450 \
+                          -hidetitle 1 \
+                          -padded 1 \
+                          [_html::siblings $qadd [<ul> id question-list class list-group \
+                                                      [_html::siblings {*}$qlist]]]] \
+                     [_html::box logout \
+                          title {Logout} \
+                          -pos { my "right-15 top+15" at "right bottom" of ".jumbotron" } \
+                          -width 300 \
+                          -hidetitle 1 \
+                          [<div> [_html::nav /logout {-text Logout}]]]]
 
     append page $js
 
