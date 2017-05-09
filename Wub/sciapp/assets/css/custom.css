@@ -79,6 +79,10 @@ hr {
     cursor: pointer;
 }
 
+.btn-sciapp {
+    cursor: pointer;
+}
+
 .form-control {
     border-radius: 0;
 }

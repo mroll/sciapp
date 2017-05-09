@@ -59,8 +59,8 @@ namespace eval ::_html {
                   onchange="handlefiles(this.files)" />
 
                   <button id="file-upload-btn"
-                  class="btn sciapp"
-                  type="button">Upload</button>
+                  class="btn btn-sciapp sciapp"
+                  type="button" disabled>Upload</button>
 
                 <a class="list-group-item list-group-item-action list-text"
                 id="file-select" href="#"
@@ -69,6 +69,7 @@ namespace eval ::_html {
                 </form>} \
             {<script>
                 function handlefiles(files) {
+                    $('#file-upload-btn').prop("disabled", false);
                     $('#file-select').text(files[0].name);
                 }
 
@@ -102,6 +103,8 @@ namespace eval ::_html {
                         },
                         success: function(data) {
                             $('#file-select').text('Choose File');
+                            $('#file-upload').files = [];
+                            $('#file-upload-btn').prop("disabled", "true");
                         }
                     });
                 });
