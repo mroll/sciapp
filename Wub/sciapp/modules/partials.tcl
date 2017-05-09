@@ -48,6 +48,74 @@ namespace eval ::_html {
                       [subst {<button data-id="$id" class="rm-question btn btn-secondary" type="button">-</button>}]]]
     }
 
+    proc file_upload { id } {
+        # need to get uniq names for local javascript variables
+
+        siblings \
+            {<form id="file-upload-form" enctype="multipart/form-data">
+                <div class="input-group">
+                  <input id="file-upload" name="file" type="file"
+                  style="display: none;"
+                  onchange="handlefiles(this.files)" />
+
+                  <button id="file-upload-btn"
+                  class="btn sciapp"
+                  type="button">Upload</button>
+
+                <a class="list-group-item list-group-item-action list-text"
+                id="file-select" href="#"
+                style="border-radius: 0; padding-top: 0; padding-bottom: 0;">Choose File</a>
+                </div>
+                </form>} \
+            {<script>
+                function handlefiles(files) {
+                    $('#file-select').text(files[0].name);
+                }
+
+                $('#file-select').on('click', e => {
+                    var fileElem = $('#file-upload');
+                    if (fileElem) {
+                        fileElem.click();
+                    }
+                    e.preventDefault();
+                });
+
+                $('#file-upload-btn').on('click', function() {
+                    $.ajax({
+                        // Your server script to process the upload
+                        url: '/api/upload',
+                        type: 'POST',
+
+                        // Form data
+                        data: new FormData($('#file-upload-form')[0]),
+
+                        // Tell jQuery not to process data or worry about content-type
+                        // You *must* include these options!
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+
+                        // Custom XMLHttpRequest
+                        xhr: function() {
+                            var myXhr = $.ajaxSettings.xhr();
+                            return myXhr;
+                        },
+                        success: function(data) {
+                            $('#file-select').text('Choose File');
+                        }
+                    });
+                });
+             </script>}
+    }
+
+    proc filenav { id args } {
+        # uniq name for upload
+        _html::box $id {*}$args \
+            [_html::siblings \
+                 [_html::file_upload file-upload] \
+                 [_html::ls . . $id]]
+    }
+
     proc siblings { args } {
         join $args \n
     }
@@ -60,9 +128,13 @@ namespace eval ::_html {
         return [<form> action $url method post \
                     [siblings \
                          [<div> \
-                              [<input> id name name name type text class "form-control user-input-lg sciapp-inverse" placeholder "name" {}]] \
+                              [<input> id name name name type text \
+                                   class "form-control user-input-lg sciapp-inverse" \
+                                   placeholder "name" {}]] \
                          [<div> \
-                              [<input> id password name password type password class "form-control user-input-lg sciapp-inverse" placeholder "password" {}]] \
+                              [<input> id password name password type password \
+                                   class "form-control user-input-lg sciapp-inverse" \
+                                   placeholder "password" {}]] \
                          [post $url -text $btntext -ids {name password}]]]
     }
 
@@ -91,13 +163,13 @@ namespace eval ::_html {
                              });
                              </script>
                          }] \
-                         [subst {<button class="$themeclass list-group-item list-group-item-action btn-list-group"
+                         [subst {<button class="$themeclass list-group-item list-group-item-action list-text"
                              type="submit">[dict get $args -text]</button>}]]]
     }
 
     proc get { url args } {
-        set class "list-group-item list-group-item-action nav-link" 
-        set style "border-radius: 0; padding-bottom: 5px; padding-top: 5px;" 
+        set class "list-group-item list-group-item-action nav-link list-text" 
+        set style "border-radius: 0; padding-bottom: 0; padding-top: 0;" 
         if { [dict exists $args -style] } {
             append style [dict get $args -style]
         }
@@ -132,11 +204,12 @@ namespace eval ::_html {
             }
         }
         
-        <span> {*}$id class "list-group-item $class" style "border-radius: 0;" $txt
+        <span> {*}$id class "list-group-item $class" \
+            style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $txt
     }
 
     proc dirlink { cwd path dialogid } {
-        set dir [regsub -all / $path _]
+        set dir [regsub -all / $path ___]
         set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
             <script>
             $(document).ready(() => {
@@ -157,15 +230,15 @@ namespace eval ::_html {
     }
 
     proc filelink { cwd path dialogid } {
-        set dir [regsub -all {\.} $path _]
+        set dir [regsub -all {\.} $path ___]
         set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
             <script>
             $(document).ready(() => {
                 $('#@dir').on('click', () => {
                     $.post('/api/preview', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
                         console.log(data.html);
-                        $('#@dialogid').dialog("option", "width", 500);
-                        $('#@dialogid').dialog("option", "resizable", true);
+                        // $('#@dialogid').dialog("option", "width", 500);
+                        // $('#@dialogid').dialog("option", "resizable", true);
                         $('#@dialogid').html(data.html);
                     });
                 });
@@ -190,6 +263,7 @@ namespace eval ::_html {
             [<pre> style "font-size: 10px;" [html_escape [exec cat $cwd/$path]]]
     }
 
+
     proc files { path } {
         split [exec ls -1 $path] \n
     }
@@ -208,6 +282,11 @@ namespace eval ::_html {
             }}]
     }
 
+    proc mapvars { args } {
+        foreach v $args { lappend res @$v; lappend res [uplevel [list set $v]] }
+        set res
+    }
+
     proc box { id args } {
         set kwargs [lrange $args 0 end-1]
         set child [lindex $args end]
@@ -216,6 +295,11 @@ namespace eval ::_html {
         set height {"auto"}
         set dialogClass "no-close custom"
         set title $id
+        set minwidth "false"
+        set maxwidth "false"
+        set minheight "false"
+        set maxheight "false"
+        set draggable "false"
 
         # parse keyword arguments out of the dictionary.
         # might be a way to put this all in a single proc..
@@ -236,12 +320,28 @@ namespace eval ::_html {
                     dict unset kwargs -pos
                 }
                 -width {
-                    set width [dict get $kwargs -width]
+                    set width $v
                     dict unset kwargs -width
                 }
                 -height {
                     set height [dict get $kwargs -height]
                     dict unset kwargs -height
+                }
+                -minwidth {
+                    set minwidth [dict get $kwargs -minwidth]
+                    dict unset kwargs -width
+                }
+                -minheight {
+                    set minheight [dict get $kwargs -minheight]
+                    dict unset kwargs -minheight
+                }
+                -maxwidth {
+                    set maxwidth [dict get $kwargs -maxwidth]
+                    dict unset kwargs -width
+                }
+                -maxheight {
+                    set maxheight [dict get $kwargs -maxheight]
+                    dict unset kwargs -maxheight
                 }
                 -hidetitle {
                     lappend dialogClass notitle
@@ -255,10 +355,16 @@ namespace eval ::_html {
                     set title [dict get $kwargs -title]
                     dict unset kwargs -title
                 }
+                -draggable {
+                    set draggable [dict get $kwargs -draggable]
+                    dict unset kwargs -draggable
+                }
             }
         }
 
-        set context [list @id $id @title $title @pos $pos @height $height @width $width @dialogClass $dialogClass]
+        set context [mapvars id title pos height width dialogClass \
+                         minheight maxheight draggable]
+
         set js [string map $context {
             <script>
             $(document).ready(() => {
@@ -266,10 +372,12 @@ namespace eval ::_html {
                     title: "@title",
                     dialogClass: "@dialogClass",
                     resizable: false,
+                    draggable: @draggable,
                     position: {@pos},
-                    minHeight: 0,
-                    maxHeight: @height,
                     width: @width,
+                    height: @height,
+                    minHeight: @minheight,
+                    maxHeight: @maxheight,
                 });
             });
             </script>

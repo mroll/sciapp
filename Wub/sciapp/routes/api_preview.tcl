@@ -1,7 +1,7 @@
 auth /api/preview { r args } {
     Query::with $r {}
 
-    set dir [regsub -all _ $dir .]
+    set dir [regsub -all ___ $dir .]
 
     set res [_html::preview $cwd $dir $dialog]
 

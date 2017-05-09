@@ -57,7 +57,7 @@ auth /dashboard { r args } {
                      [_html::box mainmenu \
                           -title {Main Menu} \
                           -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" } \
-                          -width 300 \
+                          -width 400 \
                           [_html::nav \
                                /hypothesis {-text Hypothesis} \
                                /design {-text {Experiment Design}} \
@@ -66,19 +66,21 @@ auth /dashboard { r args } {
                                /conclusions {-text Conclusions} \
                                /test {-text Test -ids {question} -style inv}]] \
                      [_html::box question-input \
-                          title {Add Question} \
-                          -pos { my "center top+15" at "center bottom" of ".jumbotron" } \
-                          -width 450 \
+                          -pos { my "left top+15" at "left bottom" of "#mainmenu" } \
+                          -width 400 \
                           -hidetitle 1 \
-                          -padded 1 \
                           [_html::siblings $qadd [<ul> id question-list class list-group \
                                                       [_html::siblings {*}$qlist]]]] \
                      [_html::box logout \
-                          title {Logout} \
-                          -pos { my "right-15 top+15" at "right bottom" of ".jumbotron" } \
-                          -width 300 \
+                          -pos { my "left top+15" at "left bottom" of "#question-input" } \
+                          -width 400 \
                           -hidetitle 1 \
-                          [<div> [_html::nav /logout {-text Logout}]]]]
+                          [<div> [_html::nav /logout {-text Logout}]]] \
+                     [_html::filenav file-nav \
+                          -title {File Navigator} \
+                          -pos { my "left top-47" at "right+10 top" of "#mainmenu" } \
+                          -width 800 \
+                          -height 500]]
 
     append page $js
 

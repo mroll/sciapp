@@ -1,7 +1,7 @@
 auth /api/ls { r args } {
     Query::with $r {}
 
-    set dir [regsub -all _ $dir /]
+    set dir [regsub -all ___ $dir /]
     if { $dir eq "UPDIR" } {
         set dir ..
     }
