@@ -45,6 +45,12 @@ hr {
 
 .list-group-item {
     margin-bottom: 0;
+    cursor: pointer;
+    padding: 0;
+}
+
+.list-group-item.text {
+    margin-left: 5px;
 }
 
 .list-group-item:last-child {
@@ -52,12 +58,8 @@ hr {
     border-radius: 0;
 }
 
-.btn-list-group {
-    font-family: 'Slabo 27px';
-    border-radius: 0;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    cursor: pointer;
+.list-text {
+    padding-left: 15px;
 }
 
 #add-question {
@@ -72,54 +74,77 @@ hr {
     border-radius: 0;
 }
 
-#name {
-    margin-bottom: 10px;
-}
-
 #register-btn {
     width: 100%;
     cursor: pointer;
 }
 
+.form-control {
+    border-radius: 0;
+}
+
+.hide {
+    display: none;
+}
+
+
 /** jQuery UI theme **/
 
-.ui-corner-all {
+.ui-widget.custom {
+    font-family: 'Slabo 27px', serif;
     border-radius: 0;
 }
 
-.ui-widget-content {
-    background-color: white;
+.ui-widget-content.custom {
+    font-family: 'Slabo 27px', serif;
+    color: white;
 }
 
-.ui-dialog {
-    border-radius: 0;
+.ui-widget-content.sciapp {
+    color: white;
+}
+
+.ui-dialog.custom {
+    font-family: 'Slabo 27px', serif;
     padding: 0;
+}
+
+.ui-widget.custom button {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-widget.custom input {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-dialog.custom .ui-dialog-content {
+    font-family: 'Slabo 27px', serif;
+    padding: 0;
+}
+
+.ui-dialog.custom .ui-widget-header {
+    background: #700cce;
+    border-radius: 0;
+}
+
+.ui-dialog.custom .ui-dialog-titlebar {
+    font-family: 'Slabo 27px', serif;
+}
+
+.ui-dialog.custom.notitle .ui-dialog-titlebar {
+    display: none;
+}
+
+.ui-dialog.custom.padded {
+    padding: 10px;
+}
+
+.ui-dialog.custom.padded input {
+    margin-bottom: 3px;
 }
 
 .no-close .ui-dialog-titlebar-close {
     display: none;
 }
 
-.ui-widget-header {
-    border: 0;
-    background: none;
-    background-color: #700cce;
-    font-family: 'Slabo 27px', serif;
-}
-
-.ui-widget-content {
-    font-family: 'Slabo 27px', serif;
-}
-
-.ui-widget input {
-    width: 100%;
-    border-radius: 0;
-    font-family: 'Slabo 27px';
-}
-
-.ui-widget button {
-    border-radius: 0;
-    font-family: 'Slabo 27px';
-    text-align: center;
-}
 

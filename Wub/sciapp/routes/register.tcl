@@ -28,12 +28,11 @@ proc register_post { r args } {
 proc register_get { r args } {
     setup r
 
-    set page [<div> id "main-title" class "jumbotron" \
-                  [<h1> Scope]]
-
-    append page [_html::box credentials \
-                     -width 650 \
-                     [_html::usercreds /register Register]]
+    set page [_html::siblings \
+                  [<div> id "main-title" class "jumbotron" [<h1> Scope]] \
+                  [_html::box credentials \
+                    -width 650 -padded 1 -hidetitle 1 \
+                    [_html::usercreds /register Register]]]
     
     set r [Html style $r css]
     return [Http Ok $r $page]

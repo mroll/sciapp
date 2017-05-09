@@ -21,8 +21,12 @@ proc login_get { r args } {
                   [<h1> Scope]]
     
     append page [_html::box credentials \
-                     -width 650 \
-                     [_html::usercreds /login Login]]
+                     -padded 1 -width 650 -hidetitle 1 \
+                     [_html::siblings \
+                        [_html::usercreds /login Login] \
+                        [_html::nav /register {-text Register \
+                            -class sciapp \
+                            -style "color: white; margin-top: 3px;"}]]]
 
     set r [Html style $r css]
     return [Http Ok $r $page]
