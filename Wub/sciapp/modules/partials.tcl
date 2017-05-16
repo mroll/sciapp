@@ -48,7 +48,7 @@ namespace eval ::_html {
                       [subst {<button data-id="$id" class="rm-question btn btn-secondary" type="button">-</button>}]]]
     }
 
-    proc file_upload { id } {
+    proc file_upload { id getdir } {
         # need to get uniq names for local javascript variables
 
         siblings \
@@ -67,10 +67,12 @@ namespace eval ::_html {
                 style="border-radius: 0; padding-top: 0; padding-bottom: 0;">Choose File</a>
                 </div>
                 </form>} \
-            {<script>
+            [string map [mapvars getdir] {<script>
                 function handlefiles(files) {
                     $('#file-upload-btn').prop("disabled", false);
                     $('#file-select').text(files[0].name);
+
+                    var dat = new FormData($('#file-upload-form')[0]);
                 }
 
                 $('#file-select').on('click', e => {
@@ -82,41 +84,38 @@ namespace eval ::_html {
                 });
 
                 $('#file-upload-btn').on('click', function() {
+                    var data = new FormData($('#file-upload-form')[0]);
+                    data.set("path", @getdir);
+                    
                     $.ajax({
-                        // Your server script to process the upload
                         url: '/api/upload',
                         type: 'POST',
+                        data: data,
 
-                        // Form data
-                        data: new FormData($('#file-upload-form')[0]),
-
-                        // Tell jQuery not to process data or worry about content-type
                         // You *must* include these options!
                         cache: false,
                         contentType: false,
                         processData: false,
 
-                        // Custom XMLHttpRequest
                         xhr: function() {
                             var myXhr = $.ajaxSettings.xhr();
                             return myXhr;
                         },
                         success: function(data) {
                             $('#file-select').text('Choose File');
-                            $('#file-upload').files = [];
                             $('#file-upload-btn').prop("disabled", "true");
                         }
                     });
                 });
-             </script>}
+                </script>}]
     }
 
     proc filenav { id args } {
         # uniq name for upload
         _html::box $id {*}$args \
             [_html::siblings \
-                 [_html::file_upload file-upload] \
-                 [_html::ls . . $id]]
+                 [_html::file_upload file-upload {$('#file-nav').data("cwd")}] \
+                 [_html::ls . $id]]
     }
 
     proc siblings { args } {
@@ -188,12 +187,14 @@ namespace eval ::_html {
 
     proc nav { args } {
         return [<ul> class "nav flex-column" \
-                    [siblings {*}[lmap { url txt } $args { <li> class nav-item \
-                                                               [if { [dict exists $txt -ids] } {
-                                                                   post $url {*}$txt
-                                                               } else {
-                                                                   get $url {*}$txt
-                                                               }] }]]]
+                    [siblings {*}[lmap { url txt } $args {
+                        <li> class nav-item \
+                            [if { [dict exists $txt -ids] } {
+                                post $url {*}$txt
+                            } else {
+                                get $url {*}$txt
+                            }]
+                    }]]]
     }
 
     proc lgroup_item { txt args } {
@@ -232,16 +233,13 @@ namespace eval ::_html {
         siblings $js [lgroup_item $path -id $dir]
     }
 
-    proc filelink { cwd path dialogid } {
+    proc rfilelink { cwd path dialogid } {
         set dir [regsub -all {\.} $path ___]
         set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
             <script>
             $(document).ready(() => {
                 $('#@dir').on('click', () => {
                     $.post('/api/preview', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
-                        console.log(data.html);
-                        // $('#@dialogid').dialog("option", "width", 500);
-                        // $('#@dialogid').dialog("option", "resizable", true);
                         $('#@dialogid').html(data.html);
                     });
                 });
@@ -252,12 +250,23 @@ namespace eval ::_html {
         siblings $js [lgroup_item $path -id $dir]
     }
 
+    proc filelink { cwd fname dialogid } {
+        if { [file isdirectory $cwd/$fname] } {
+            return [dirlink $cwd $fname $dialogid]
+        }
+        return [rfilelink $cwd $fname $dialogid]
+    }
+
+    proc filelinks { cwd dialogid } {
+        lmap f [files $cwd] { filelink $cwd $f $dialogid }
+    }
+
     proc html_escape { string } {
         set patterns { & \\&amp\; < \\&lt\; > \\&gt\; }
         dict for {k v} $patterns  {
             set string [regsub -all $k $string $v]
         }
-        set string
+        return $string
     }
 
     proc preview { cwd path dialogid } {
@@ -265,7 +274,6 @@ namespace eval ::_html {
             [dirlink $cwd DOTDIR $dialogid] \
             [<pre> style "font-size: 10px;" [html_escape [exec cat $cwd/$path]]]
     }
-
 
     proc files { path } {
         split [exec ls -1 $path] \n
@@ -275,14 +283,10 @@ namespace eval ::_html {
         return [<ul> class "nav flex-column" [siblings {*}$args]]
     }
 
-    proc ls { cwd path dialogid } {
+    proc ls { cwd dialogid } {
         menulist \
             [dirlink $cwd UPDIR $dialogid] \
-            {*}[lmap f [files $cwd] { if { [file isdirectory $cwd/$f] } {
-                dirlink $cwd $f $dialogid
-            } else {
-                filelink $cwd $f $dialogid
-            }}]
+            {*}[filelinks $cwd $dialogid]
     }
 
     proc mapvars { args } {

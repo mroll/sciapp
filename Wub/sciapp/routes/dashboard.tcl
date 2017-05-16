@@ -63,8 +63,7 @@ auth /dashboard { r args } {
                                /design {-text {Experiment Design}} \
                                /measurements {-text Measurements} \
                                /analysis {-text Analysis} \
-                               /conclusions {-text Conclusions} \
-                               /test {-text Test -ids {question} -style inv}]] \
+                               /conclusions {-text Conclusions}]] \
                      [_html::box question-input \
                           -pos { my "left top+15" at "left bottom" of "#mainmenu" } \
                           -width 400 \
@@ -78,7 +77,7 @@ auth /dashboard { r args } {
                           [<div> [_html::nav /logout {-text Logout}]]] \
                      [_html::filenav file-nav \
                           -title {File Navigator} \
-                          -pos { my "left top-47" at "right+10 top" of "#mainmenu" } \
+                          -pos { my "left top-47" at "right+400 top" of "#mainmenu" } \
                           -width 800 \
                           -height 500]]
 
