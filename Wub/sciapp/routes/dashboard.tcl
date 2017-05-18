@@ -77,9 +77,14 @@ auth /dashboard { r args } {
                           [<div> [_html::nav /logout {-text Logout}]]] \
                      [_html::filenav file-nav \
                           -title {File Navigator} \
-                          -pos { my "left top-47" at "right+400 top" of "#mainmenu" } \
+                          -pos { my "left top-47" at "right+10 top" of "#mainmenu" } \
+                          -width 350 \
+                          -maxheight 600] \
+                     [_html::fileviewer file-preview \
+                          -hidetitle 1 \
                           -width 800 \
-                          -height 500]]
+                          -height 600 \
+                          -pos { my "left top-45" at "right+10 top" of "#file-nav" }]]
 
     append page $js
 

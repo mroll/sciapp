@@ -3,7 +3,7 @@ auth /api/preview { r args } {
 
     set dir [regsub -all ___ $dir .]
 
-    set res [_html::preview $cwd $dir $dialog]
+    set res [_html::preview $windowid $cwd $dir]
 
     Http Ok $r [::json::write object html [json::write string $res]] application/json
 }

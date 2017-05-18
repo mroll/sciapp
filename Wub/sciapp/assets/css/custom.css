@@ -151,4 +151,6 @@ hr {
     display: none;
 }
 
-
+filepreview {
+    background-color: #f9f9f9;
+}

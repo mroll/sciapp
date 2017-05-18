@@ -10,7 +10,7 @@ auth /api/ls { r args } {
     }
 
     # escape newlines and quotes
-    set files [regsub -all \n [_html::ls $cwd/$dir $dialog] \\n]
+    set files [regsub -all \n [_html::ls $windowid $cwd/$dir $dialog] \\n]
     set files [regsub -all \" $files \\"]
 
     Http Ok $r [::json::write string [subst {{"html": "$files"}}]] application/json

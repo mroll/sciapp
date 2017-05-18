@@ -115,7 +115,7 @@ namespace eval ::_html {
         _html::box $id {*}$args \
             [_html::siblings \
                  [_html::file_upload file-upload {$('#file-nav').data("cwd")}] \
-                 [_html::ls . $id]]
+                 [_html::ls ls . file-preview]]
     }
 
     proc siblings { args } {
@@ -212,15 +212,15 @@ namespace eval ::_html {
             style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $txt
     }
 
-    proc dirlink { cwd path dialogid } {
+    proc dirlink { windowid cwd path dialogid } {
         set dir [regsub -all / $path ___]
-        set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
+        set js [string map [list @windowid $windowid @cwd $cwd @dir $dir @dialogid $dialogid] {
             <script>
             $(document).ready(() => {
                 $('#@dir').on('click', () => {
-                    $.post('/api/ls', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
+                    $.post('/api/ls', { windowid: "@windowid", cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
                         $('#@dialogid').dialog("option", "resizable", false);
-                        $('#@dialogid').html(JSON.parse(data).html);
+                        $('#@windowid').html(JSON.parse(data).html);
                     });
                 });
             });
@@ -233,14 +233,14 @@ namespace eval ::_html {
         siblings $js [lgroup_item $path -id $dir]
     }
 
-    proc rfilelink { cwd path dialogid } {
+    proc rfilelink { cwd path windowid } {
         set dir [regsub -all {\.} $path ___]
-        set js [string map [list @cwd $cwd @dir $dir @dialogid $dialogid] {
+        set js [string map [list @windowid $windowid @cwd $cwd @dir $dir] {
             <script>
             $(document).ready(() => {
                 $('#@dir').on('click', () => {
-                    $.post('/api/preview', { cwd: "@cwd", dir: "@dir", dialog: "@dialogid" }, data => {
-                        $('#@dialogid').html(data.html);
+                    $.post('/api/preview', { windowid: "@windowid", cwd: "@cwd", dir: "@dir" }, data => {
+                        $('#@windowid').html(data.html);
                     });
                 });
             });
@@ -250,15 +250,15 @@ namespace eval ::_html {
         siblings $js [lgroup_item $path -id $dir]
     }
 
-    proc filelink { cwd fname dialogid } {
+    proc filelink { windowid cwd fname dialogid } {
         if { [file isdirectory $cwd/$fname] } {
-            return [dirlink $cwd $fname $dialogid]
+            return [dirlink $windowid $cwd $fname $dialogid]
         }
         return [rfilelink $cwd $fname $dialogid]
     }
 
-    proc filelinks { cwd dialogid } {
-        lmap f [files $cwd] { filelink $cwd $f $dialogid }
+    proc filelinks { windowid cwd dialogid } {
+        lmap f [files $cwd] { filelink $windowid $cwd $f $dialogid }
     }
 
     proc html_escape { string } {
@@ -266,27 +266,32 @@ namespace eval ::_html {
         dict for {k v} $patterns  {
             set string [regsub -all $k $string $v]
         }
-        return $string
+        set string
     }
 
-    proc preview { cwd path dialogid } {
-        menulist \
-            [dirlink $cwd DOTDIR $dialogid] \
+    proc fileviewer { id args } {
+        box $id {*}$args \
+            [<div> class filepreview]
+    }
+
+    proc preview { id cwd path } {
+        menulist [list id $id] \
             [<pre> style "font-size: 10px;" [html_escape [exec cat $cwd/$path]]]
     }
+
 
     proc files { path } {
         split [exec ls -1 $path] \n
     }
 
-    proc menulist { args } {
-        return [<ul> class "nav flex-column" [siblings {*}$args]]
+    proc menulist { kwargs args } {
+        return [<ul> class "nav flex-column" {*}$kwargs [siblings {*}$args]]
     }
 
-    proc ls { cwd dialogid } {
-        menulist \
-            [dirlink $cwd UPDIR $dialogid] \
-            {*}[filelinks $cwd $dialogid]
+    proc ls { id cwd dialogid } {
+        menulist [list id $id] \
+            [dirlink $id $cwd UPDIR $dialogid] \
+            {*}[filelinks $id $cwd $dialogid]
     }
 
     proc mapvars { args } {
