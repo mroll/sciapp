@@ -8,6 +8,7 @@ namespace eval ::user {
     proc add { name password } {
         set passhash [hash $password]
         db eval {insert into user (name, password) values ($name, $passhash)}
+        file mkdir ${::sciapp_home}/users/$name
     }
 
     proc rmsession { name } {

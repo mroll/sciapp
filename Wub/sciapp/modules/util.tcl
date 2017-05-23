@@ -21,3 +21,7 @@ proc ::padfront { s n } {
     concat [string repeat 0 [expr { $n - [string length $s] }]] $s
 }
 
+proc ::fwrite { fname data } {
+    K [puts [set fd [open $fname w]] $data] [close $fd]
+}
+

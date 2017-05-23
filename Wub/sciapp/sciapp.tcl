@@ -11,9 +11,11 @@ namespace eval ::Sciapp {
                           [_html::jqueryui] \
                           [_html::jqueryui-css] \
                           [_html::bootstrap] \
+                          [_html::simplemde] \
                           [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
 
     proc init { file } {
+        puts here
         sqlite3 db $file
     }
 
@@ -41,7 +43,7 @@ namespace eval ::Sciapp {
             }
 
             setup r
-            
+
             $body
         }]
     }

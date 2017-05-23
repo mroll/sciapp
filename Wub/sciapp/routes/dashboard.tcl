@@ -75,11 +75,24 @@ auth /dashboard { r args } {
                           -width 400 \
                           -hidetitle 1 \
                           [<div> [_html::nav /logout {-text Logout}]]] \
-                     [_html::filenav file-nav \
+                     [_html::filenav file-nav ${::sciapp_home}/users/[cookie name $r] \
                           -title {File Navigator} \
                           -pos { my "left top-47" at "right+10 top" of "#mainmenu" } \
                           -width 350 \
                           -maxheight 600] \
+                     [_html::box tools \
+                          -title Tools \
+                          -pos { my "left-1 top+10" at "left bottom" of "#file-nav" } \
+                          -width 350 \
+                          [_html::siblings \
+                               [_html::tool mean {$('#file-preview').data("filename")} results] \
+                               [_html::tool min {$('#file-preview').data("filename")} results] \
+                               [_html::tool max {$('#file-preview').data("filename")} results]]] \
+                     [_html::box results \
+                          -title Results \
+                          -pos { my "left-1 top+10" at "left bottom" of "#tools" } \
+                          -width 350 \
+                          [_html::showdata results {}]] \
                      [_html::fileviewer file-preview \
                           -hidetitle 1 \
                           -width 800 \

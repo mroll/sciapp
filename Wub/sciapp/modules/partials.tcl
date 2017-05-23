@@ -38,12 +38,19 @@ namespace eval ::_html {
         }
     }
 
+    proc simplemde { } {
+        return {
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+            <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+        }
+    }
+
     proc qlistitem { id question } {
         <div> class input-group \
             [siblings \
-                 [<a> class "list-group-item list-group-item-action" \
+                 [<a> class "list-group-item list-group-item-action list-text" \
                       href /questions?$id \
-                      style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $question] \
+                      style "border-radius: 0; padding-top: 0; padding-bottom: 0" $question] \
                  [<span> \
                       [subst {<button data-id="$id" class="rm-question btn btn-secondary" type="button">-</button>}]]]
     }
@@ -110,12 +117,12 @@ namespace eval ::_html {
                 </script>}]
     }
 
-    proc filenav { id args } {
+    proc filenav { id cwd args } {
         # uniq name for upload
         _html::box $id {*}$args \
             [_html::siblings \
                  [_html::file_upload file-upload {$('#file-nav').data("cwd")}] \
-                 [_html::ls ls . file-preview]]
+                 [_html::ls ls $cwd file-preview]]
     }
 
     proc siblings { args } {
@@ -241,6 +248,7 @@ namespace eval ::_html {
                 $('#@dir').on('click', () => {
                     $.post('/api/preview', { windowid: "@windowid", cwd: "@cwd", dir: "@dir" }, data => {
                         $('#@windowid').html(data.html);
+                        $('#@windowid').data("filename", "@cwd/@dir");
                     });
                 });
             });
@@ -248,6 +256,24 @@ namespace eval ::_html {
         }]
 
         siblings $js [lgroup_item $path -id $dir]
+    }
+
+    proc tool { id getfile windowid } {
+        set js [string map [mapvars id getfile windowid] {<script>
+            $(document).ready(() => {
+                $('#@id').on('click', () => {
+                    $.post('/api/operator', { path: @getfile, operator: "@id", windowid: "@windowid" }, data => {
+                        $('#@windowid').html(data.html);
+                    });
+                });
+            });
+            </script>}]
+
+        siblings $js [lgroup_item $id -id $id]
+    }
+
+    proc showdata { id data } {
+        <pre> id $id $data
     }
 
     proc filelink { windowid cwd fname dialogid } {
@@ -270,15 +296,21 @@ namespace eval ::_html {
     }
 
     proc fileviewer { id args } {
+        box $id {*}$args [<div> class filepreview]
+    }
+
+    proc editor { id args } {
         box $id {*}$args \
-            [<div> class filepreview]
+            {<input type="textarea"  id="editbox"></input>
+             <script>
+                var simplemde = new SimpleMDE({ element: $("#editbox")[0] });
+             </script>}
     }
 
     proc preview { id cwd path } {
         menulist [list id $id] \
             [<pre> style "font-size: 10px;" [html_escape [exec cat $cwd/$path]]]
     }
-
 
     proc files { path } {
         split [exec ls -1 $path] \n
