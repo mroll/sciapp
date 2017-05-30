@@ -8,7 +8,12 @@ namespace eval ::user {
     proc add { name password } {
         set passhash [hash $password]
         db eval {insert into user (name, password) values ($name, $passhash)}
-        file mkdir ${::sciapp_home}/users/$name
+        file mkdir ${::sciapp_home}/users/$name/
+        # exec touch ${::sciapp_home}/users/$name/db.sqlite
+    }
+
+    proc rm { name } {
+        db eval {delete from user where name = $name}
     }
 
     proc rmsession { name } {
@@ -45,9 +50,9 @@ namespace eval ::user {
 
     proc questions { name } {
         set uid [id $name]
-        db eval {select id, question from question inner join userquestions on
-            userquestions.uid = $uid and
-            userquestions.qid = question.id order by question.id desc}
+        db eval {select question.id, question from question inner join userquestion on
+            userquestion.uid = $uid and
+            userquestion.qid = question.id order by question.id desc}
     }
 
     proc loggedin { r } {

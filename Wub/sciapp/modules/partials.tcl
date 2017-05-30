@@ -45,14 +45,100 @@ namespace eval ::_html {
         }
     }
 
+    proc mathbox { } {
+        <script> src "../assets/js/mathbox/mathbox-bundle.js"
+    }
+
     proc qlistitem { id question } {
         <div> class input-group \
             [siblings \
                  [<a> class "list-group-item list-group-item-action list-text" \
-                      href /questions?$id \
+                      href /question?qid=$id \
                       style "border-radius: 0; padding-top: 0; padding-bottom: 0" $question] \
                  [<span> \
-                      [subst {<button data-id="$id" class="rm-question btn btn-secondary" type="button">-</button>}]]]
+                      [subst {<button data-id="$id" class="rm-item btn-dyn-list btn btn-secondary" type="button">-</button>}]]]
+    }
+
+    proc button { id text } {
+        return [string map [mapvars id text] {
+            <button id="@id" class="btn btn-sciapp sciapp" style="width: 100%;">
+            @text
+            </button>}]
+    }
+
+    # requires the -addroute and -rmroute args. probably a way to do
+    # this better in the future. meaning requiring custom kwargs that
+    # get read by the widget and not the box.
+    # same thing with the optional -existing argument.
+    proc dynamic-list { id args } {
+        set addroute [dict get $args -addroute]
+        set rmroute [dict get $args -rmroute]
+
+        dict unset args -addroute; dict unset args -rmroute
+
+        set existing {}
+        if { [dict exists $args -existing] } {
+            set existing [dict get $args -existing]
+            dict unset args -existing
+        }
+
+        set listitem [_html::qlistitem \${id} \${value}]
+        set inputid $id-input
+        set buttonid $id-add
+        set listid $id-list
+
+        set js [string map [mapvars listid listitem addroute rmroute buttonid inputid] {
+            <script>
+            $(document).ready(function() {
+                $('#@buttonid').on('click', e => {
+                    e.preventDefault();
+
+                    var value = $('#@inputid').val();
+                    if (value == '') {
+                        return;
+                    }
+                    data = { value: value };
+
+                    $.post('@addroute', data, function(data) {
+                        if (data.message == "success") {
+                            var id = data.id;
+
+                            $(`@listitem`).prependTo('#@listid');
+                            $('#@inputid').val('')
+                            $('.rm-item').click(deleteitem);
+                        }
+                    });
+                });
+
+                function deleteitem(e) {
+                    e.preventDefault();
+
+                    var el = $(e.target),
+                    data = { id: el.attr('data-id') };
+
+                    $.post('@rmroute', data, data => {
+                        el.closest('div').remove();
+                    });
+                }
+
+                $('.rm-item').click(deleteitem);
+
+            });
+            </script>
+        }]
+
+        set input [<div> class input-group \
+                         [string map [mapvars inputid buttonid] {
+                             <input id="@inputid" type="text" class="form-control" placeholder="" />
+                             <span>
+                             <button id="@buttonid" class="btn btn-secondary btn-dyn-list" type="button">+</button>
+                             </span>}]]
+
+        box $id {*}$args \
+            [siblings \
+                 $js \
+                 $input \
+                 [<ul> id $listid class list-group [siblings {*}$existing]]]
     }
 
     proc file_upload { id getdir } {
@@ -300,11 +386,35 @@ namespace eval ::_html {
     }
 
     proc editor { id args } {
+        # the -save argument can probably be made to have a value
+        # that's just a string and can be passed along to the server
+        # to be treated.
+        set route [dict get $args -save route]
+        set data [dict get $args -save data]
+        set initval [dict get $args -initval]
+
         box $id {*}$args \
-            {<input type="textarea"  id="editbox"></input>
-             <script>
-                var simplemde = new SimpleMDE({ element: $("#editbox")[0] });
-             </script>}
+            [siblings \
+                 [string map [mapvars id route data initval] {
+                     <input type="textarea"  id="@id-editbox"></input>
+                     <script>
+                     $(document).ready(() => {
+                         var simplemde = new SimpleMDE({
+                             initialValue: `@initval`,
+                             element: $("#@id-editbox")[0],
+                             status: false,
+                             toolbar: false,
+                         });
+
+                         $('#save').on('click', () => {
+                             $.post("@route", { data: {@data}, value: simplemde.value() }, data => {
+                                 console.log('saved!');
+                             });
+                         });
+                     });
+                     </script>}] \
+                 [button save Save]]
+             
     }
 
     proc preview { id cwd path } {
@@ -324,11 +434,6 @@ namespace eval ::_html {
         menulist [list id $id] \
             [dirlink $id $cwd UPDIR $dialogid] \
             {*}[filelinks $id $cwd $dialogid]
-    }
-
-    proc mapvars { args } {
-        foreach v $args { lappend res @$v; lappend res [uplevel [list set $v]] }
-        set res
     }
 
     proc box { id args } {
