@@ -15,7 +15,6 @@ namespace eval ::Sciapp {
                           [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
 
     proc init { file } {
-        puts here
         sqlite3 db $file
     }
 

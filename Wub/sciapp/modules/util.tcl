@@ -51,3 +51,23 @@ proc ::jointable_namespace { t1 t1idname t2 t2idname } {
 # this should go somewhere else since it's specific to the
 # application.
 jointable_namespace user uid question qid
+jointable_namespace question qid hypothesis hid
+jointable_namespace hypothesis hid experiment eid
+
+proc ::make_joinquery_proc { name t1name t1idname t2name t2idname args } {
+    set fields ${t2name}.id
+    if { $args ne {} } {
+        append fields ", [join $args ,]"
+    }
+
+    set tblname $t1name$t2name
+    set querystring [string map [mapvars tblname fields t1name t1idname t2name t2idname] {
+        select @fields from @t2name inner join @tblname on
+        @tblname.@t1idname = $id and
+        @tblname.@t2idname = @t2name.id order by @t2name.id desc}]
+
+    proc $name { id } [string map [mapvars querystring] {
+        puts [info body user_questions]
+        db eval {@querystring}
+    }]
+}

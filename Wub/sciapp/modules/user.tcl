@@ -48,11 +48,11 @@ namespace eval ::user {
         expr { [_password $name] eq [hash $password] }
     }
 
+    make_joinquery_proc user_questions user uid question qid \
+        question.question
     proc questions { name } {
         set uid [id $name]
-        db eval {select question.id, question from question inner join userquestion on
-            userquestion.uid = $uid and
-            userquestion.qid = question.id order by question.id desc}
+        user_questions $uid
     }
 
     proc loggedin { r } {

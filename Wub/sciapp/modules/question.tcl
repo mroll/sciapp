@@ -17,14 +17,10 @@ namespace eval ::question {
         db eval $query
     }
 
+    make_joinquery_proc question_hypotheses question qid hypothesis hid \
+        hypothesis.hypothesis
     proc hypothesis { id } {
-        set res [db eval {select hypothesis from question where id = $id}]
-
-        if { [llength $res] } {
-            set res [lindex $res 0]
-        }
-
-        return $res
+        question_hypotheses $id
     }
 
     namespace export -clear *
