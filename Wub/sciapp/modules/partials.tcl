@@ -71,8 +71,9 @@ namespace eval ::_html {
     # get read by the widget and not the box.
     # same thing with the optional -existing argument.
     proc dynamic-list { id args } {
-        set addroute [dict get $args -addroute]
-        set rmroute [dict get $args -rmroute]
+        set addroute [dict get $args -add route]
+        set data [dict get $args -add data]
+        set rmroute [dict get $args -rm route]
 
         dict unset args -addroute; dict unset args -rmroute
 
@@ -87,7 +88,7 @@ namespace eval ::_html {
         set buttonid $id-add
         set listid $id-list
 
-        set js [string map [mapvars listid listitem addroute rmroute buttonid inputid] {
+        set js [string map [mapvars listid listitem addroute data rmroute buttonid inputid] {
             <script>
             $(document).ready(function() {
                 $('#@buttonid').on('click', e => {
@@ -97,7 +98,7 @@ namespace eval ::_html {
                     if (value == '') {
                         return;
                     }
-                    data = { value: value };
+                    data = { value: value, data: {@data} };
 
                     $.post('@addroute', data, function(data) {
                         if (data.message == "success") {
@@ -141,7 +142,12 @@ namespace eval ::_html {
                  [<ul> id $listid class list-group [siblings {*}$existing]]]
     }
 
-    proc file_upload { id getdir } {
+    proc uploader { id args } {
+        box $id {*}$args \
+            [file_upload $id-upload $getdir]
+    }
+
+    proc file_upload { id } {
         # need to get uniq names for local javascript variables
 
         siblings \
@@ -160,7 +166,7 @@ namespace eval ::_html {
                 style="border-radius: 0; padding-top: 0; padding-bottom: 0;">Choose File</a>
                 </div>
                 </form>} \
-            [string map [mapvars getdir] {<script>
+            [string map {} {<script>
                 function handlefiles(files) {
                     $('#file-upload-btn').prop("disabled", false);
                     $('#file-select').text(files[0].name);
@@ -178,7 +184,6 @@ namespace eval ::_html {
 
                 $('#file-upload-btn').on('click', function() {
                     var data = new FormData($('#file-upload-form')[0]);
-                    data.set("path", @getdir);
                     
                     $.ajax({
                         url: '/api/upload',
@@ -290,20 +295,77 @@ namespace eval ::_html {
                     }]]]
     }
 
-    proc lgroup_item { txt args } {
+    proc litem { id txt args } {
         set class list-text
-        set id {}
 
         dict for {k v} $args {
             switch $k {
-                -class { set class $v }
-                -id { set id [list id $v] }
+                class { set class $v }
             }
         }
         
-        <span> {*}$id class "list-group-item $class" \
-            style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $txt
+        set html [<span> id $id class "list-group-item $class" \
+                      style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $txt]
+
+        if { [dict exists $args cb] } {
+            set cb [dict get $args cb]
+            set callback [string map [mapvars id cb] {
+                <script>
+                $(document).ready(() => {
+                    $('#@id').on('click', () => { @cb });
+                });
+                </script>
+            }]
+            puts here
+            puts [siblings $callback $html]
+            puts there
+        }
+
+        siblings $callback $html
     }
+
+    proc list2js { l } {
+        return \[[join [concat [lmap x $l { json::write string "$x" }]] ", "]\]
+    }
+
+    proc boxgroups { id groups args } {
+        set labels [dict keys $groups]
+        set groups [dict values $groups]
+        set boxids [concat {*}$groups]
+
+        set boxidsjs [list2js $boxids]
+        set groupsjs [lmap g $groups { list2js $g }]
+
+        # this whole section of assignments should get cleaned up.
+        set pairs [lmap l $labels g $groupsjs { list $l $g }]
+        set groupdictjs [json::write object {*}[concat {*}$pairs]]
+
+        set js [string map [mapvars groupdictjs boxidsjs] {
+            <script>
+                  var groups = @groupdictjs;
+                  var boxids = @boxidsjs;
+            </script>
+        }]
+
+        foreach group $groups label $labels {
+            set group [list2js $group]
+
+            set callback [string map [mapvars label] {
+                for (let bid of boxids) {
+                    $(`#${bid}`).dialog("close");
+                }
+
+                for (let bid of groups["@label"]) {
+                    $(`#${bid}`).dialog("open");
+                }
+            }]
+            lappend md [litem ${label}group $label cb $callback]
+        }
+
+        box $id {*}$args [siblings $js [<ul> [siblings {*}$md]]]
+
+    }
+
 
     proc dirlink { windowid cwd path dialogid } {
         set dir [regsub -all / $path ___]
@@ -323,7 +385,7 @@ namespace eval ::_html {
         if { $path eq "UPDIR" } { set path .. }
         if { $path eq "DOTDIR" } { set path . }
 
-        siblings $js [lgroup_item $path -id $dir]
+        siblings $js [litem id $dir $path]
     }
 
     proc rfilelink { cwd path windowid } {
@@ -341,7 +403,7 @@ namespace eval ::_html {
             </script>
         }]
 
-        siblings $js [lgroup_item $path -id $dir]
+        siblings $js [litem $dir $path]
     }
 
     proc tool { id getfile windowid } {
@@ -355,7 +417,7 @@ namespace eval ::_html {
             });
             </script>}]
 
-        siblings $js [lgroup_item $id -id $id]
+        siblings $js [litem $id $id]
     }
 
     proc showdata { id data } {
@@ -448,7 +510,7 @@ namespace eval ::_html {
         set maxwidth "false"
         set minheight "false"
         set maxheight "false"
-        set draggable "false"
+        set draggable "true"
 
         # parse keyword arguments out of the dictionary.
         # might be a way to put this all in a single proc..

@@ -2,6 +2,7 @@ package require json::write
 package require sqlite3
 
 # load modules
+source ${::sciapp_home}/util.tcl
 foreach f [glob ${::sciapp_home}/modules/*] { source $f }
 
 
@@ -16,6 +17,13 @@ namespace eval ::Sciapp {
 
     proc init { file } {
         sqlite3 db $file
+
+        # not sure if this is a great place for these definitions, but
+        # it's better than the util file.
+        jointable_namespace user uid question qid
+        jointable_namespace question qid hypothesis hid
+        jointable_namespace hypothesis hid experiment eid
+        jointable_namespace experiment eid var vid
     }
 
     proc setup { rname } {

@@ -16,8 +16,8 @@ auth /dashboard { r args } {
                                /analysis {-text Analysis} \
                                /conclusions {-text Conclusions}]] \
                      [_html::dynamic-list questions \
-                          -addroute /api/question/new \
-                          -rmroute /api/question/rm \
+                          -add "route /api/question/new data {}" \
+                          -rm "route /api/question/rm" \
                           -existing $qlist \
                           -pos { my "left top+15" at "left bottom" of "#mainmenu" } \
                           -width 400 \

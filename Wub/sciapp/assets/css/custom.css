@@ -44,6 +44,7 @@ hr {
 }
 
 .list-group-item {
+    width: 100%;
     margin-bottom: 0;
     cursor: pointer;
     padding: 0;
@@ -60,6 +61,7 @@ hr {
 
 .list-text {
     padding-left: 10px;
+    padding-right: 10px;
 }
 
 #add-question {
@@ -153,4 +155,9 @@ hr {
 
 filepreview {
     background-color: #f9f9f9;
+}
+
+ul {
+    padding: 0;
+    margin: 0;
 }

@@ -25,6 +25,12 @@ namespace eval ::experiment {
         db eval $query
     }
 
+    make_joinquery_proc experiment_vars experiment eid var vid \
+        var.name
+    proc vars { id } {
+        experiment_vars $id
+    }
+
     namespace export -clear *
-    namespace ensemble create -subcommands { create update procedure resources }
+    namespace ensemble create -subcommands { create update procedure resources vars }
 }
