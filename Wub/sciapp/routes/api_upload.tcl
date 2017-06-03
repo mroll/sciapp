@@ -1,10 +1,15 @@
+# takes a starbase file for now. the idea is to expand this function
+# to support many kinds of files. but really depends on what turns out
+# to be useful.
+proc parsedata { data } {
+    lmap vec [transpose [rows_from_csv $data]] { lreplace $vec 1 1 }
+}
+
 auth /api/upload { r args } {
-
-    # there should be a better way to get the filename from the request.
-    set filename [dict get [lindex [dict get $r -Query file] 1] filename]
-    set data [Query::value [Query::parse $r] file]
-
-    fwrite ${::sciapp_home}/users/[cookie name $r]/$filename $data
+    Query::with $r {}
+    
+    set eid    [dict get [json::json2dict $payload] eid]
+    experiment data $eid [rows_from_csv $file]
 
     Http Ok $r [::json::write object message [::json::write string success]] application/json
 }

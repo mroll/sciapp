@@ -1,3 +1,7 @@
+package require csv
+package require json::write
+package require json
+
 proc ::mapvars { args } {
     foreach v $args { lappend res @$v; lappend res [uplevel [list set $v]] }
     set res
@@ -66,3 +70,37 @@ proc ::make_joinquery_proc { name t1name t1idname t2name t2idname args } {
 }
 
 proc ::id { x } { set x }
+
+# write [mapcan]
+
+proc ::zip { args } {
+    for {set i 0} {$i < [llength $args]} {incr i} {
+        lappend vars x$i
+    }
+    set script  [concat list {*}[lmap v $vars { id $$v }]]
+    set mapargs [concat {*}[lmap v $vars arg $args { list $v $arg }]]
+
+    lmap {*}$mapargs $script
+}
+
+proc ::transpose { m } { zip {*}$m }
+
+proc ::rows_from_csv { s } {
+    set rows [lmap line [split $s \n] { csv::split $line \t }]
+    list [lindex $rows 0] {*}[lrange $rows 2 end]
+}
+
+proc ::len  list { llength $list }
+proc ::atom x    { expr { [len $x] == 1 } }
+
+proc ::car { list } {
+    if { [atom $list] } { return $list }
+    lindex $list 0
+}
+
+proc ::cdr { list } {
+    if { [atom $list] } { return {} }
+    lrange $list 1 end
+}
+
+proc ::cadr { list } { car [cdr $list] }

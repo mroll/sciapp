@@ -1,8 +1,37 @@
 namespace eval ::experiment {
     proc create { } {
         db eval {insert into experiment default values}
-        db eval {select last_insert_rowid()}
+        set eid [db eval {select last_insert_rowid()}]
+
+        set query [string map [mapvars eid] {
+            create table e@eid_data (id integer primary key autoincrement, runid int)
+        }]
+        db eval $query
+
+        return $eid
     }
+
+    proc data { id data } {
+        set cols [join [car $data] ", "]
+        set vals [join [lmap row [cdr $data] { id ([join [lmap x $row { json::write string $x }] ", "]) }] ", "]
+
+        set query [string map [mapvars id cols vals] {
+            insert into e@id_data (@cols) values @vals
+        }]
+
+        db eval $query
+    }
+
+    proc addvar { id var } {
+        set query [string map [mapvars id var] {
+            alter table e@id_data add column @var text
+        }]
+        db eval $query
+    }
+
+    # sqlite doesn't have easy handling of removing a column. so this
+    # will be slightly complicated.
+    proc rmvar { id var } { }
 
     proc procedure { id } {
         set res [db eval {select procedure from experiment where id = $id}]
@@ -32,5 +61,5 @@ namespace eval ::experiment {
     }
 
     namespace export -clear *
-    namespace ensemble create -subcommands { create update procedure resources vars }
+    namespace ensemble create -subcommands { create update procedure resources vars data addvar }
 }

@@ -142,12 +142,12 @@ namespace eval ::_html {
                  [<ul> id $listid class list-group [siblings {*}$existing]]]
     }
 
-    proc uploader { id args } {
+    proc uploader { id payload args } {
         box $id {*}$args \
-            [file_upload $id-upload $getdir]
+            [file_upload $id-upload $payload]
     }
 
-    proc file_upload { id } {
+    proc file_upload { id payload } {
         # need to get uniq names for local javascript variables
 
         siblings \
@@ -166,12 +166,12 @@ namespace eval ::_html {
                 style="border-radius: 0; padding-top: 0; padding-bottom: 0;">Choose File</a>
                 </div>
                 </form>} \
-            [string map {} {<script>
+            [string map [mapvars payload] {<script>
                 function handlefiles(files) {
                     $('#file-upload-btn').prop("disabled", false);
                     $('#file-select').text(files[0].name);
 
-                    var dat = new FormData($('#file-upload-form')[0]);
+                    // var dat = new FormData($('#file-upload-form')[0]);
                 }
 
                 $('#file-select').on('click', e => {
@@ -184,6 +184,7 @@ namespace eval ::_html {
 
                 $('#file-upload-btn').on('click', function() {
                     var data = new FormData($('#file-upload-form')[0]);
+                    data.set("payload", @payload);
                     
                     $.ajax({
                         url: '/api/upload',
@@ -212,7 +213,7 @@ namespace eval ::_html {
         # uniq name for upload
         _html::box $id {*}$args \
             [_html::siblings \
-                 [_html::file_upload file-upload {$('#file-nav').data("cwd")}] \
+                 [_html::file_upload file-upload [json::write object path {$('#file-nav').data("cwd")}]] \
                  [_html::ls ls $cwd file-preview]]
     }
 
@@ -316,9 +317,6 @@ namespace eval ::_html {
                 });
                 </script>
             }]
-            puts here
-            puts [siblings $callback $html]
-            puts there
         }
 
         siblings $callback $html
@@ -385,7 +383,7 @@ namespace eval ::_html {
         if { $path eq "UPDIR" } { set path .. }
         if { $path eq "DOTDIR" } { set path . }
 
-        siblings $js [litem id $dir $path]
+        siblings $js [litem id $dir route $path]
     }
 
     proc rfilelink { cwd path windowid } {

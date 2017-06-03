@@ -25,15 +25,11 @@ auth /question { r args } {
 
     set varlist [lmap { id name } [experiment vars $eid] { _html::qlistitem $id $name }]
 
-    puts HERREE
-    puts [_html::boxgroups groups {Design {hypothesis procedure resources vars} \
-                                       Measurement {upload preview}} \
-              -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" }]
-                 
 
-    # append page [_html::siblings \
-    #                  [_html::uploader upload \
-    #                       -pos { my "left+15 top+55" at "left bottom" of ".jumbotron" }]]
+
+    append page [_html::siblings \
+                     [_html::uploader upload [json::write string [json::write object eid $eid]] \
+                          -pos { my "left+15 top+55" at "left bottom" of ".jumbotron" }]]
 
     append page [_html::siblings \
                      [_html::editor hypothesis \
