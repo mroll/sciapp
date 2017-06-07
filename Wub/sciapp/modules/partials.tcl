@@ -1,4 +1,4 @@
-namespace eval ::_html {
+namespace eval ::box {
     
     proc jquery { } {
         return {<script src="https://code.jquery.com/jquery-3.2.1.min.js"
@@ -445,37 +445,86 @@ namespace eval ::_html {
         box $id {*}$args [<div> class filepreview]
     }
 
-    proc editor { id args } {
-        # the -save argument can probably be made to have a value
-        # that's just a string and can be passed along to the server
-        # to be treated.
-        set route [dict get $args -save route]
-        set data [dict get $args -save data]
-        set initval [dict get $args -initval]
+    proc widget { name template } {
+        proc $name { options } [string map [mapvars template] {
+            dict with options {}
 
-        box $id {*}$args \
-            [siblings \
-                 [string map [mapvars id route data initval] {
-                     <input type="textarea"  id="@id-editbox"></input>
-                     <script>
-                     $(document).ready(() => {
-                         var simplemde = new SimpleMDE({
-                             initialValue: `@initval`,
-                             element: $("#@id-editbox")[0],
-                             status: false,
-                             toolbar: false,
-                         });
-
-                         $('#save').on('click', () => {
-                             $.post("@route", { data: {@data}, value: simplemde.value() }, data => {
-                                 console.log('saved!');
-                             });
-                         });
-                     });
-                     </script>}] \
-                 [button save Save]]
-             
+            siblings {*}[lmap item {@template} { eval $item }]
+        }]
     }
+
+    proc editor { options } {
+        dict with options {}
+
+        set data [json::write object {*}$data]
+
+        siblings \
+            [string map [mapvars id route data] {
+                <input type="textarea"  id="@id-editbox"></input>
+                <script>
+                $(document).ready(() => {
+                    var simplemde = new SimpleMDE({
+                        element: $("#@id-editbox")[0],
+                        status: false,
+                        toolbar: false,
+                    });
+
+                    $('#save').on('click', () => {
+                        $.post("@route", { data: @data, value: simplemde.value() }, data => {
+                            console.log('saved!');
+                        });
+                    });
+                });
+                </script>
+            }] \
+            [button save Save]
+    }
+
+
+    proc container { options } {
+        set width  {"auto"}
+        set height {"auto"}
+        set minwidth "false"
+        set maxwidth "false"
+        set minheight "false"
+        set maxheight "false"
+        set draggable "true"
+        set dialogclass "no-close custom"
+        set pos { my center at center of window }
+
+        dict with options {}
+
+        dict with pos {
+            set my [json::write string $my]
+            set at [json::write string $at]
+            set of [json::write string $of]
+        }
+        set pos [json::write object {*}$pos]
+
+        set interior [uplevel $body]
+
+        set context  [mapvars id title pos height width \
+                          minheight maxheight dialogclass]
+        set js [string map $context {
+            <script>
+            $(document).ready(() => {
+                $("#@id").dialog({
+                    title: "@title",
+                    resizable: false,
+                    position: @pos,
+                    width: @width,
+                    height: @height,
+                    minHeight: @minheight,
+                    maxHeight: @maxheight,
+                    dialogClass: "@dialogclass",
+                });
+            });
+            </script>
+        }]
+
+        siblings [col {} id $id $interior] $js 
+    }
+        
 
     proc preview { id cwd path } {
         menulist [list id $id] \
@@ -496,103 +545,84 @@ namespace eval ::_html {
             {*}[filelinks $id $cwd $dialogid]
     }
 
-    proc box { id args } {
-        set kwargs [lrange $args 0 end-1]
-        set child [lindex $args end]
-        set pos "my: \"center\", at: \"center\", of: window"
-        set width {"auto"}
-        set height {"auto"}
-        set dialogClass "no-close custom"
-        set title $id
-        set minwidth "false"
-        set maxwidth "false"
-        set minheight "false"
-        set maxheight "false"
-        set draggable "true"
+    # proc container { id args } {
+    #     set kwargs [lrange $args 0 end-1]
+    #     set child [lindex $args end]
+    #     set pos "my: \"center\", at: \"center\", of: window"
+    #     set width {"auto"}
+    #     set height {"auto"}
+    #     set dialogClass "no-close custom"
+    #     set title $id
+    #     set minwidth "false"
+    #     set maxwidth "false"
+    #     set minheight "false"
+    #     set maxheight "false"
+    #     set draggable "true"
 
-        # parse keyword arguments out of the dictionary.
-        # might be a way to put this all in a single proc..
-        #     kwargs $kwargs
-        # and then all the names of the keys would be in
-        # scope in just the right way to be subst'd into
-        # the template string.
-        dict for {k v} $kwargs {
-            switch $k {
-                -pos {
-                    set my [dict get $kwargs -pos my]
-                    set at [dict get $kwargs -pos at]
-                    set of [dict get $kwargs -pos of]
+    #     # parse keyword arguments out of the dictionary.
+    #     # might be a way to put this all in a single proc..
+    #     #     kwargs $kwargs
+    #     # and then all the names of the keys would be in
+    #     # scope in just the right way to be subst'd into
+    #     # the template string.
+    #     dict for {k v} $kwargs {
+    #         switch $k {
+    #             -pos {
+    #                 set my [dict get $kwargs -pos my]
+    #                 set at [dict get $kwargs -pos at]
+    #                 set of [dict get $kwargs -pos of]
 
-                    # use Html's dict2json for this
-                    set pos [string map [list @my $my @at $at @of $of] {my: "@my", at: "@at", of: "@of"}]
+    #                 # use Html's dict2json for this
+    #                 set pos [string map [list @my $my @at $at @of $of] {my: "@my", at: "@at", of: "@of"}]
 
-                    dict unset kwargs -pos
-                }
-                -width {
-                    set width $v
-                    dict unset kwargs -width
-                }
-                -height {
-                    set height [dict get $kwargs -height]
-                    dict unset kwargs -height
-                }
-                -minwidth {
-                    set minwidth [dict get $kwargs -minwidth]
-                    dict unset kwargs -width
-                }
-                -minheight {
-                    set minheight [dict get $kwargs -minheight]
-                    dict unset kwargs -minheight
-                }
-                -maxwidth {
-                    set maxwidth [dict get $kwargs -maxwidth]
-                    dict unset kwargs -width
-                }
-                -maxheight {
-                    set maxheight [dict get $kwargs -maxheight]
-                    dict unset kwargs -maxheight
-                }
-                -hidetitle {
-                    lappend dialogClass notitle
-                    dict unset kwargs -hidetitle
-                }
-                -padded {
-                    lappend dialogClass padded
-                    dict unset kwargs -padded
-                }
-                -title {
-                    set title [dict get $kwargs -title]
-                    dict unset kwargs -title
-                }
-                -draggable {
-                    set draggable [dict get $kwargs -draggable]
-                    dict unset kwargs -draggable
-                }
-            }
-        }
+    #                 dict unset kwargs -pos
+    #             }
+    #             -width {
+    #                 set width $v
+    #                 dict unset kwargs -width
+    #             }
+    #             -height {
+    #                 set height [dict get $kwargs -height]
+    #                 dict unset kwargs -height
+    #             }
+    #             -minwidth {
+    #                 set minwidth [dict get $kwargs -minwidth]
+    #                 dict unset kwargs -width
+    #             }
+    #             -minheight {
+    #                 set minheight [dict get $kwargs -minheight]
+    #                 dict unset kwargs -minheight
+    #             }
+    #             -maxwidth {
+    #                 set maxwidth [dict get $kwargs -maxwidth]
+    #                 dict unset kwargs -width
+    #             }
+    #             -maxheight {
+    #                 set maxheight [dict get $kwargs -maxheight]
+    #                 dict unset kwargs -maxheight
+    #             }
+    #             -hidetitle {
+    #                 lappend dialogClass notitle
+    #                 dict unset kwargs -hidetitle
+    #             }
+    #             -padded {
+    #                 lappend dialogClass padded
+    #                 dict unset kwargs -padded
+    #             }
+    #             -title {
+    #                 set title [dict get $kwargs -title]
+    #                 dict unset kwargs -title
+    #             }
+    #             -draggable {
+    #                 set draggable [dict get $kwargs -draggable]
+    #                 dict unset kwargs -draggable
+    #             }
+    #         }
+    #     }
 
-        set context [mapvars id title pos height width dialogClass \
-                         minheight maxheight draggable]
+    # }
 
-        set js [string map $context {
-            <script>
-            $(document).ready(() => {
-                $("#@id").dialog({
-                    title: "@title",
-                    dialogClass: "@dialogClass",
-                    resizable: false,
-                    draggable: @draggable,
-                    position: {@pos},
-                    width: @width,
-                    height: @height,
-                    minHeight: @minheight,
-                    maxHeight: @maxheight,
-                });
-            });
-            </script>
-        }]
 
-        siblings [col {} id $id {*}$kwargs $child] $js 
-    }
-
+    namespace export -clear *
+    namespace ensemble create -subcommands { container editor }
 }

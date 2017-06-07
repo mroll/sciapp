@@ -7,12 +7,12 @@ foreach f [glob ${::sciapp_home}/modules/*] { source $f }
 
 
 namespace eval ::Sciapp {
-    variable headers [_html::siblings \
-                          [_html::jquery] \
-                          [_html::jqueryui] \
-                          [_html::jqueryui-css] \
-                          [_html::bootstrap] \
-                          [_html::simplemde] \
+    variable headers [box::siblings \
+                          [box::jquery] \
+                          [box::jqueryui] \
+                          [box::jqueryui-css] \
+                          [box::bootstrap] \
+                          [box::simplemde] \
                           [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
 
     proc init { file } {
