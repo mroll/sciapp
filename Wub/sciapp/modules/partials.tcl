@@ -1,4 +1,29 @@
 namespace eval ::box {
+    proc dict2json { d } {
+        dict for {k v} $d {
+            puts "$k: $v"
+            if { [string range $v 0 3] eq "#var" } {
+                lappend pairs $k; lappend pairs [string range $v 4 end]
+            } else {
+                lappend pairs $k; lappend pairs [json::write string $v]
+            }
+        }
+
+        json::write object {*}$pairs
+    }
+
+    proc widget { name defaults args body } {
+        dict for {k v} $defaults {
+            # if { [string range $v 0 4] eq "#json" } {
+            #     lappend sets [list set $k [dict2json [string range $v 5 end]]]
+            # } else {
+                lappend sets [list set $k $v]
+            # }
+        }
+        set sets [join $sets \n]
+
+        proc $name $args [string map [mapvars sets body] {@sets; @body}]
+    }
     
     proc jquery { } {
         return {<script src="https://code.jquery.com/jquery-3.2.1.min.js"
@@ -49,44 +74,85 @@ namespace eval ::box {
         <script> src "../assets/js/mathbox/mathbox-bundle.js"
     }
 
-    proc qlistitem { id question } {
+    proc inputgroup { args } {
+        <div> class input-group [siblings {*}$args]
+    }
+
+    set textinput_defaults { placeholder {} }
+    widget textinput $textinput_defaults { id args } {
+        dict with args {}
+        <input> id $id type text class form-control placeholder $placeholder
+    }
+
+    # might be able to get real flexibility out of this if we
+    # optionally pass in an href or a callback.
+    # not currently using the callback.
+    set dynlistrow_defaults { text {} href {} cb {} }
+    widget dynlist-row $dynlistrow_defaults { id args } {
+        dict with args {}
+
         <div> class input-group \
             [siblings \
                  [<a> class "list-group-item list-group-item-action list-text" \
-                      href /question?qid=$id \
-                      style "border-radius: 0; padding-top: 0; padding-bottom: 0" $question] \
+                      href $href \
+                      style "border-radius: 0; padding-top: 0; padding-bottom: 0" $text] \
                  [<span> \
                       [subst {<button data-id="$id" class="rm-item btn-dyn-list btn btn-secondary" type="button">-</button>}]]]
     }
 
-    proc button { id text } {
-        return [string map [mapvars id text] {
-            <button id="@id" class="btn btn-sciapp sciapp" style="width: 100%;">
-            @text
-            </button>}]
+
+    set dyninput_defaults { inputid {} placeholder {} cb {} }
+    widget dynamic-input {} { id args } {
+        dict with args {}
+
+        inputgroup [textinput $inputid placeholder $placeholder] \
+            [button $buttonid text + cb $cb]
     }
 
-    # requires the -addroute and -rmroute args. probably a way to do
-    # this better in the future. meaning requiring custom kwargs that
-    # get read by the widget and not the box.
-    # same thing with the optional -existing argument.
-    proc dynamic-list { id args } {
-        set addroute [dict get $args -add route]
-        set data [dict get $args -add data]
-        set rmroute [dict get $args -rm route]
+    dynamic-input new-q inputid new-q-input placeholder "Ask anything..." cb \
+        [string map [mapvars inputid listitem addroute rmroute data id listid] {
+            var value = $('#@inputid').val();
+            if (value == '') {
+                return;
+            }
+            data = { value: value, data: @data };
 
-        dict unset args -addroute; dict unset args -rmroute
+            $.post('@addroute', data, function(data) {
+                if (data.message == "success") {
+                    var id = data.id;
 
-        set existing {}
-        if { [dict exists $args -existing] } {
-            set existing [dict get $args -existing]
-            dict unset args -existing
-        }
+                    $(`@listitem`).prependTo('#@listid');
+                    $('#@inputid').val('')
+                    $('.rm-item').click(deleteitem);
+                }
+            });
+        }]
 
-        set listitem [_html::qlistitem \${id} \${value}]
+    inputgroup [get 
+
+
+    set dynlist_defaults { addroute {} rmroute {} data {} existing {} }
+    widget dynamic-list $dynlist_defaults { id args } {
+        dict with args {}
+
+        set data [dict2json $data]
+        
         set inputid $id-input
         set buttonid $id-add
         set listid $id-list
+
+        set inputrow [inputgroup [textinput $inputid] [button $id]]
+
+        # set input [<div> class input-group \
+        #                  [string map [mapvars inputid buttonid] {
+        #                      <input id="@inputid" type="text" class="form-control" placeholder="" />
+        #                      <span>
+        #                      <button id="@buttonid" class="btn btn-secondary btn-dyn-list" type="button">+</button>
+        #                      </span>}]]
+
+        # set itemrow [siblings [$litemfn \${id} text \${value}]]
+
+        set itemrow [inputgroup [get 
 
         set js [string map [mapvars listid listitem addroute data rmroute buttonid inputid] {
             <script>
@@ -98,7 +164,7 @@ namespace eval ::box {
                     if (value == '') {
                         return;
                     }
-                    data = { value: value, data: {@data} };
+                    data = { value: value, data: @data };
 
                     $.post('@addroute', data, function(data) {
                         if (data.message == "success") {
@@ -123,24 +189,16 @@ namespace eval ::box {
                 }
 
                 $('.rm-item').click(deleteitem);
-
             });
             </script>
         }]
 
-        set input [<div> class input-group \
-                         [string map [mapvars inputid buttonid] {
-                             <input id="@inputid" type="text" class="form-control" placeholder="" />
-                             <span>
-                             <button id="@buttonid" class="btn btn-secondary btn-dyn-list" type="button">+</button>
-                             </span>}]]
-
-        box $id {*}$args \
-            [siblings \
-                 $js \
-                 $input \
-                 [<ul> id $listid class list-group [siblings {*}$existing]]]
+        siblings \
+            $js \
+            $input \
+            [<ul> id $listid class list-group [siblings {*}$existing]]
     }
+
 
     proc uploader { id payload args } {
         box $id {*}$args \
@@ -221,7 +279,6 @@ namespace eval ::box {
         join $args \n
     }
 
-    proc container { args } { <div> class container {*}$args }
     proc row       { args } { <div> class row {*}$args }
     proc col       { args } { <div> class {*}$args }
 
@@ -294,6 +351,24 @@ namespace eval ::box {
                                 get $url {*}$txt
                             }]
                     }]]]
+    }
+
+    set litem_defaults { text {} class list-text }
+    widget litem $litem_defaults { id args } {
+        set html [<span> id $id class "list-group-item $class" \
+                      style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $text]
+
+        if { [info exists cb] } {
+            lappend html [string map [mapvars id cb] {
+                <script>
+                $(document).ready(() => {
+                    $('#@id').on('click', () => { @cb });
+                });
+                </script>
+            }]
+        }
+
+        siblings {*}$html
     }
 
     proc litem { id txt args } {
@@ -445,18 +520,30 @@ namespace eval ::box {
         box $id {*}$args [<div> class filepreview]
     }
 
-    proc widget { name template } {
-        proc $name { options } [string map [mapvars template] {
-            dict with options {}
+    set button_defaults { text Button }
+    widget button $button_defaults { id args } {
+        dict with args {}
 
-            siblings {*}[lmap item {@template} { eval $item }]
-        }]
+        set html [<button> id $id class "btn btn-sciapp sciapp" $text]
+
+        if { [info exists cb] } {
+            lappend html [string map [mapvars id cb] {
+                <script>
+                $(document).ready(() => {
+                    $('#@id').on('click', () => { @cb });
+                });
+                </script>
+            }]
+        }
+
+        siblings {*}$html
     }
 
-    proc editor { options } {
-        dict with options {}
+    set editor_defaults { route / data null }
+    widget editor $editor_defaults { id args } {
+        dict with args {}
 
-        set data [json::write object {*}$data]
+        set data [dict2json $data]
 
         siblings \
             [string map [mapvars id route data] {
@@ -477,54 +564,53 @@ namespace eval ::box {
                 });
                 </script>
             }] \
-            [button save Save]
+            [button save text Save]
     }
 
+    set container_defaults {
+        width {"width"}
+        height {"auto"}
+        minwidth "false"
+        maxwidth "false"
+        minheight "false"
+        maxheight "false"
+        draggable "true"
+        dialogclass "no-close custom"
+        pos "my center at center of #varwindow"
+        title {}
+        
+    }
+    widget container $container_defaults { id args } {
+        set content [uplevel [lindex $args end]]
+        set args    [lrange $args 0 end-1]
 
-    proc container { options } {
-        set width  {"auto"}
-        set height {"auto"}
-        set minwidth "false"
-        set maxwidth "false"
-        set minheight "false"
-        set maxheight "false"
-        set draggable "true"
-        set dialogclass "no-close custom"
-        set pos { my center at center of window }
-
-        dict with options {}
-
-        dict with pos {
-            set my [json::write string $my]
-            set at [json::write string $at]
-            set of [json::write string $of]
-        }
-        set pos [json::write object {*}$pos]
-
-        set interior [uplevel $body]
-
+        dict with args {}
+        set pos [dict2json $pos]
+        
         set context  [mapvars id title pos height width \
-                          minheight maxheight dialogclass]
+                          minheight maxheight dialogclass \
+                          minwidth maxwidth]
         set js [string map $context {
             <script>
             $(document).ready(() => {
                 $("#@id").dialog({
-                    title: "@title",
-                    resizable: false,
+                    title: "hello",
+                    dialogClass: "no-close custom",
                     position: @pos,
-                    width: @width,
                     height: @height,
+                    width: @width,
                     minHeight: @minheight,
                     maxHeight: @maxheight,
-                    dialogClass: "@dialogclass",
+                    minWidth: @minwidth,
+                    maxWidth: @maxwidth,
                 });
+
             });
             </script>
         }]
-
-        siblings [col {} id $id $interior] $js 
-    }
         
+        siblings [col {} id $id $content] $js 
+    }
 
     proc preview { id cwd path } {
         menulist [list id $id] \
@@ -545,84 +631,7 @@ namespace eval ::box {
             {*}[filelinks $id $cwd $dialogid]
     }
 
-    # proc container { id args } {
-    #     set kwargs [lrange $args 0 end-1]
-    #     set child [lindex $args end]
-    #     set pos "my: \"center\", at: \"center\", of: window"
-    #     set width {"auto"}
-    #     set height {"auto"}
-    #     set dialogClass "no-close custom"
-    #     set title $id
-    #     set minwidth "false"
-    #     set maxwidth "false"
-    #     set minheight "false"
-    #     set maxheight "false"
-    #     set draggable "true"
-
-    #     # parse keyword arguments out of the dictionary.
-    #     # might be a way to put this all in a single proc..
-    #     #     kwargs $kwargs
-    #     # and then all the names of the keys would be in
-    #     # scope in just the right way to be subst'd into
-    #     # the template string.
-    #     dict for {k v} $kwargs {
-    #         switch $k {
-    #             -pos {
-    #                 set my [dict get $kwargs -pos my]
-    #                 set at [dict get $kwargs -pos at]
-    #                 set of [dict get $kwargs -pos of]
-
-    #                 # use Html's dict2json for this
-    #                 set pos [string map [list @my $my @at $at @of $of] {my: "@my", at: "@at", of: "@of"}]
-
-    #                 dict unset kwargs -pos
-    #             }
-    #             -width {
-    #                 set width $v
-    #                 dict unset kwargs -width
-    #             }
-    #             -height {
-    #                 set height [dict get $kwargs -height]
-    #                 dict unset kwargs -height
-    #             }
-    #             -minwidth {
-    #                 set minwidth [dict get $kwargs -minwidth]
-    #                 dict unset kwargs -width
-    #             }
-    #             -minheight {
-    #                 set minheight [dict get $kwargs -minheight]
-    #                 dict unset kwargs -minheight
-    #             }
-    #             -maxwidth {
-    #                 set maxwidth [dict get $kwargs -maxwidth]
-    #                 dict unset kwargs -width
-    #             }
-    #             -maxheight {
-    #                 set maxheight [dict get $kwargs -maxheight]
-    #                 dict unset kwargs -maxheight
-    #             }
-    #             -hidetitle {
-    #                 lappend dialogClass notitle
-    #                 dict unset kwargs -hidetitle
-    #             }
-    #             -padded {
-    #                 lappend dialogClass padded
-    #                 dict unset kwargs -padded
-    #             }
-    #             -title {
-    #                 set title [dict get $kwargs -title]
-    #                 dict unset kwargs -title
-    #             }
-    #             -draggable {
-    #                 set draggable [dict get $kwargs -draggable]
-    #                 dict unset kwargs -draggable
-    #             }
-    #         }
-    #     }
-
-    # }
-
 
     namespace export -clear *
-    namespace ensemble create -subcommands { container editor }
+    namespace ensemble create -subcommands { container editor dynamic-list }
 }

@@ -25,43 +25,53 @@ auth /question { r args } {
 
     set varlist [lmap { id name } [experiment vars $eid] { _html::qlistitem $id $name }]
 
-
-
-    append page [_html::siblings \
-                     [_html::uploader upload [json::write string [json::write object eid $eid]] \
-                          -pos { my "left+15 top+55" at "left bottom" of ".jumbotron" }] \
-                     [_html::box lambda \
+    # append page [_html::siblings \
+    #                  [_html::uploader upload [json::write string [json::write object eid $eid]] \
+    #                       -pos { my "left+15 top+55" at "left bottom" of ".jumbotron" }]]
                           
 
-    append page [_html::siblings \
-                     [_html::editor hypothesis \
-                          -initval $hypothesis \
-                          -title Hypothesis \
-                          -width 400 \
-                          -save "route /api/hypothesis/update data [json::write object hid $hid]" \
-                          -pos { my "left+15 top+55" at "left bottom" of ".jumbotron" }] \
-                     [_html::editor procedure \
-                          -initval $procedure \
-                          -title Procedure \
-                          -width 400 \
-                          -save "route /api/experiment/update data $proceduredata" \
-                          -pos { my "left+15 top-47" at "right top" of "#hypothesis" }] \
-                     [_html::editor resources \
-                          -initval $resources \
-                          -title Resources \
-                          -width 400 \
-                          -save "route /api/experiment/update data $resourcesdata" \
-                          -pos { my "left+15 top-46" at "right top" of "#procedure" }] \
-                     [_html::dynamic-list vars \
-                          -add "route /api/variable/new data [json::write object eid $eid]" \
-                          -rm "route /api/variable/rm" \
-                          -existing $varlist \
-                          -title Variables \
-                          -width 350 \
-                          -pos { my "left+15 top-47" at "right top" of "#resources" }] \
-                     [_html::boxgroups groups {Design {hypothesis procedure resources vars} \
-                                                   Measurement {upload preview}} \
-                          -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" }]]
+    # append page [_html::siblings \
+    #                  [_html::editor hypothesis \
+    #                       -initval $hypothesis \
+    #                       -title Hypothesis \
+    #                       -width 400 \
+    #                       -save "route /api/hypothesis/update data [json::write object hid $hid]" \
+    #                       -pos { my "left+15 top+55" at "left bottom" of ".jumbotron" }] \
+    #                  [_html::editor procedure \
+    #                       -initval $procedure \
+    #                       -title Procedure \
+    #                       -width 400 \
+    #                       -save "route /api/experiment/update data $proceduredata" \
+    #                       -pos { my "left+15 top-47" at "right top" of "#hypothesis" }] \
+    #                  [_html::editor resources \
+    #                       -initval $resources \
+    #                       -title Resources \
+    #                       -width 400 \
+    #                       -save "route /api/experiment/update data $resourcesdata" \
+    #                       -pos { my "left+15 top-46" at "right top" of "#procedure" }] \
+    #                  [_html::dynamic-list vars \
+    #                       -add "route /api/variable/new data [json::write object eid $eid]" \
+    #                       -rm "route /api/variable/rm" \
+    #                       -existing $varlist \
+    #                       -title Variables \
+    #                       -width 350 \
+    #                       -pos { my "left+15 top-47" at "right top" of "#resources" }] \
+    #                  [_html::boxgroups groups {Design {hypothesis procedure resources vars} \
+    #                                                Measurement {upload preview}} \
+    #                       -pos { my "left+15 top+15" at "left bottom" of ".jumbotron" }]]
+
+    lappend page [box container hypothesis \
+                      title Hypothesis \
+                      width 400 \
+                      pos { my "left+15 top+55" at "left bottom" of ".jumbotron" } {
+                          box editor hypothesis-editor \
+                              addroute /api/variable/new \
+                              rmroute /api/variable/rm \
+                              existing $varlist \
+                              data "hid $hid"
+                      }]
+
+                      
 
     set r [Html style $r css]
     return [Http Ok $r $page]
