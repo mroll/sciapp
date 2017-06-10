@@ -1,7 +1,8 @@
 namespace eval ::box {
     proc dict2json { d } {
+        if { [dict keys $d] eq {} } { return [json::write object] }
+        
         dict for {k v} $d {
-            puts "$k: $v"
             if { [string range $v 0 3] eq "#var" } {
                 lappend pairs $k; lappend pairs [string range $v 4 end]
             } else {
@@ -13,6 +14,7 @@ namespace eval ::box {
     }
 
     proc widget { name defaults args body } {
+        set sets {}
         dict for {k v} $defaults {
             # if { [string range $v 0 4] eq "#json" } {
             #     lappend sets [list set $k [dict2json [string range $v 5 end]]]
@@ -78,127 +80,99 @@ namespace eval ::box {
         <div> class input-group [siblings {*}$args]
     }
 
+    proc <button> { args } {
+        dict with args {}
+        string map [mapvars {*}[dict keys $args]] {<button id="@id" class="@class">@text</button>}
+    }
+
+    set button_defaults { text Button class {} }
+    widget button $button_defaults { id args } {
+        dict with args {}
+
+        set html [<button> id $id class "btn input-group-btn sciapp $class" text $text]
+
+        if { [info exists cb] } {
+            lappend html [string map [mapvars id cb] {
+                <script>
+                $(document).ready(() => {
+                    $('#@id').on('click', () => { @cb });
+                });
+                </script>
+            }]
+        }
+
+        siblings {*}$html
+    }
+
     set textinput_defaults { placeholder {} }
     widget textinput $textinput_defaults { id args } {
         dict with args {}
-        <input> id $id type text class form-control placeholder $placeholder
+        <input> id $id type text class form-control placeholder $placeholder {}
     }
 
-    # might be able to get real flexibility out of this if we
-    # optionally pass in an href or a callback.
-    # not currently using the callback.
     set dynlistrow_defaults { text {} href {} cb {} }
     widget dynlist-row $dynlistrow_defaults { id args } {
         dict with args {}
 
-        <div> class input-group \
-            [siblings \
-                 [<a> class "list-group-item list-group-item-action list-text" \
-                      href $href \
-                      style "border-radius: 0; padding-top: 0; padding-bottom: 0" $text] \
-                 [<span> \
-                      [subst {<button data-id="$id" class="rm-item btn-dyn-list btn btn-secondary" type="button">-</button>}]]]
+        inputgroup [get $href text $text] [button del-$id text -]
     }
 
-
-    set dyninput_defaults { inputid {} placeholder {} cb {} }
+    set dyninput_defaults { inputid {} placeholder {} buttonid {} cb {} }
     widget dynamic-input {} { id args } {
         dict with args {}
 
         inputgroup [textinput $inputid placeholder $placeholder] \
-            [button $buttonid text + cb $cb]
+            [button $buttonid class "btn btn-secondary" text + cb $cb]
     }
-
-    dynamic-input new-q inputid new-q-input placeholder "Ask anything..." cb \
-        [string map [mapvars inputid listitem addroute rmroute data id listid] {
-            var value = $('#@inputid').val();
-            if (value == '') {
-                return;
-            }
-            data = { value: value, data: @data };
-
-            $.post('@addroute', data, function(data) {
-                if (data.message == "success") {
-                    var id = data.id;
-
-                    $(`@listitem`).prependTo('#@listid');
-                    $('#@inputid').val('')
-                    $('.rm-item').click(deleteitem);
-                }
-            });
-        }]
-
-    inputgroup [get 
-
 
     set dynlist_defaults { addroute {} rmroute {} data {} existing {} }
     widget dynamic-list $dynlist_defaults { id args } {
         dict with args {}
 
-        set data [dict2json $data]
-        
-        set inputid $id-input
-        set buttonid $id-add
         set listid $id-list
+        set inputid $id-input
+        set buttonid $id-btn
+        set listitem [inputgroup [get /question?qid=\${id} text \${value}] \
+                          [button del-$id class "rm-item" text -]]
 
-        set inputrow [inputgroup [textinput $inputid] [button $id]]
+        set data [dict2json $data]
 
-        # set input [<div> class input-group \
-        #                  [string map [mapvars inputid buttonid] {
-        #                      <input id="@inputid" type="text" class="form-control" placeholder="" />
-        #                      <span>
-        #                      <button id="@buttonid" class="btn btn-secondary btn-dyn-list" type="button">+</button>
-        #                      </span>}]]
+        lappend html [<script> [string map [mapvars rmroute] {
+            function deleteitem(e) {
+                e.preventDefault();
 
-        # set itemrow [siblings [$litemfn \${id} text \${value}]]
+                var el = $(e.target),
+                data = { id: el.attr('data-id') };
 
-        set itemrow [inputgroup [get 
-
-        set js [string map [mapvars listid listitem addroute data rmroute buttonid inputid] {
-            <script>
-            $(document).ready(function() {
-                $('#@buttonid').on('click', e => {
-                    e.preventDefault();
-
-                    var value = $('#@inputid').val();
-                    if (value == '') {
-                        return;
-                    }
-                    data = { value: value, data: @data };
-
-                    $.post('@addroute', data, function(data) {
-                        if (data.message == "success") {
-                            var id = data.id;
-
-                            $(`@listitem`).prependTo('#@listid');
-                            $('#@inputid').val('')
-                            $('.rm-item').click(deleteitem);
-                        }
-                    });
+                $.post('@rmroute', data, data => {
+                    el.closest('div').remove();
                 });
+            }
+        }]]
 
-                function deleteitem(e) {
-                    e.preventDefault();
+        lappend html [dynamic-input new-q inputid $inputid buttonid $buttonid placeholder "Ask anything..." cb \
+                          [string map [mapvars inputid listitem addroute rmroute data id listid] {
+                              var value = $('#@inputid').val();
+                              if (value == '') {
+                                  return;
+                              }
+                              data = { value: value, data: @data };
+                              console.log(data);
 
-                    var el = $(e.target),
-                    data = { id: el.attr('data-id') };
+                              $.post('@addroute', data, function(data) {
+                                  if (data.message == "success") {
+                                      var id = data.id;
+                                      console.log(data);
 
-                    $.post('@rmroute', data, data => {
-                        el.closest('div').remove();
-                    });
-                }
+                                      $(`@listitem`).prependTo('#@listid');
+                                      $('#@inputid').val('')
+                                      $('.rm-item').click(deleteitem);
+                                  }
+                              });
+                          }]]
 
-                $('.rm-item').click(deleteitem);
-            });
-            </script>
-        }]
-
-        siblings \
-            $js \
-            $input \
-            [<ul> id $listid class list-group [siblings {*}$existing]]
+        siblings {*}$html {*}[<ul> id $listid class list-group [siblings {*}$existing]]
     }
-
 
     proc uploader { id payload args } {
         box $id {*}$args \
@@ -335,10 +309,11 @@ namespace eval ::box {
             lappend class [dict get $args -class]
         }
 
+        puts $args
         <a> href $url \
             class $class \
             style $style \
-            [dict get $args -text]
+            [dict get $args text]
     }
 
     proc nav { args } {
@@ -518,25 +493,6 @@ namespace eval ::box {
 
     proc fileviewer { id args } {
         box $id {*}$args [<div> class filepreview]
-    }
-
-    set button_defaults { text Button }
-    widget button $button_defaults { id args } {
-        dict with args {}
-
-        set html [<button> id $id class "btn btn-sciapp sciapp" $text]
-
-        if { [info exists cb] } {
-            lappend html [string map [mapvars id cb] {
-                <script>
-                $(document).ready(() => {
-                    $('#@id').on('click', () => { @cb });
-                });
-                </script>
-            }]
-        }
-
-        siblings {*}$html
     }
 
     set editor_defaults { route / data null }

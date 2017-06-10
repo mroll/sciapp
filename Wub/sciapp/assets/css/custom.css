@@ -70,10 +70,11 @@ hr {
     width: 75px;
 }
 
-.btn-dyn-list {
+.input-group-btn {
     cursor: pointer;
-    width: 75px;
     border-radius: 0;
+    width: 20%;
+    margin: auto;
 }
 
 #register-btn {

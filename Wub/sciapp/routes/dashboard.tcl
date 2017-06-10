@@ -2,16 +2,18 @@ auth /dashboard { r args } {
     set page [<div> id "main-title" class "jumbotron" \
                   [<h1> Scope]]
 
-    set qlist [lmap { id q } [user questions $name] { box::qlistitem $id $q }]
+    # set qlist [lmap { id q } [user questions $name] { box::qlistitem $id $q }]
 
-    set page [box container questions \
+    lappend page [box container questions \
                   title Questions \
+                  pos { my "left+15 top+55" at "left bottom" of ".jumbotron" } \
                   width 400 {
                       box dynamic-list question-list \
                           addroute /api/question/new \
                           rmroute /api/question/rm \
-                          existing $qlist
                   }]
+
+    # puts $page
                   
 
     # append page [_html::siblings \

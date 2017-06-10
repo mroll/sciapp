@@ -13,7 +13,6 @@ namespace eval ::Sciapp {
                           [box::jqueryui-css] \
                           [box::bootstrap] \
                           [box::simplemde] \
-                          kj
                           [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
 
     proc init { file } {
