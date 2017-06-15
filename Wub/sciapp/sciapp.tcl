@@ -13,7 +13,8 @@ namespace eval ::Sciapp {
                           [box::jqueryui-css] \
                           [box::bootstrap] \
                           [box::simplemde] \
-                          [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
+                          [<link> href "https://fonts.googleapis.com/css?family=Inconsolata" rel "stylesheet"]]
+                          # [<link> href https://fonts.googleapis.com/css?family=Slabo+27px rel stylesheet]]
 
     proc init { file } {
         sqlite3 db $file
@@ -42,7 +43,8 @@ namespace eval ::Sciapp {
         proc $name $args [subst -nocommands {
             # if there is no cookie, or if the session cookie does not equal
             # the one stored in the db for the given name, redirect to login.
-            if { [::cookie get \$r] eq "nil" } {
+            puts "cookie: [::cookie get \$r]"
+            if { [::cookie get \$r] eq {} || [::cookie get \$r] eq "nil" } {
                 return [Http Redirect \$r /login]
             }
             if { [user getsession [::cookie name \$r]] ne [::cookie val \$r] } {

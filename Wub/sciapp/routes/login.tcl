@@ -16,17 +16,17 @@ proc /login { r args } {
 
 proc login_get { r args } {
     setup r
-    
-    set page [<div> id "main-title" class "jumbotron" \
-                  [<h1> Scope]]
-    
-    append page [_html::box credentials \
-                     -padded 1 -width 650 -hidetitle 1 \
-                     [_html::siblings \
-                        [_html::usercreds /login Login] \
-                        [_html::nav /register {-text Register \
-                            -class sciapp \
-                            -style "color: white; margin-top: 3px;"}]]]
+
+    set page [<div> id "main-title" class "jumbotron" [<h1> Scope]]
+
+    append page [box container login \
+                    pos { my "center" at "center" of #varwindow } \
+                    width 500 {
+                        {box usercreds /login Login}
+                        {box get /register 
+                            text Register 
+                            class sciapp}
+                    }]
 
     set r [Html style $r css]
     return [Http Ok $r $page]

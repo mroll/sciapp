@@ -56,7 +56,7 @@ namespace eval ::user {
     }
 
     proc loggedin { r } {
-        if { [::cookie get $r] eq "nil" } {
+        if { [::cookie get $r] eq {} || [::cookie get $r] eq "nil" } {
             return 0
         }
         if { [user getsession [::cookie name $r]] ne [::cookie val $r] } {

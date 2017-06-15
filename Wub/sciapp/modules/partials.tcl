@@ -85,11 +85,13 @@ namespace eval ::box {
         string map [mapvars {*}[dict keys $args]] {<button id="@id" class="@class">@text</button>}
     }
 
-    set button_defaults { text Button class {} }
+    set button_defaults { text Button defaultclass "btn sciapp btn-sciapp" }
     widget button $button_defaults { id args } {
         dict with args {}
 
-        set html [<button> id $id class "btn input-group-btn sciapp $class" text $text]
+        if { [info exists class] } { lappend defaultclass $class }
+
+        set html [<button> id $id class $defaultclass text $text]
 
         if { [info exists cb] } {
             lappend html [string map [mapvars id cb] {
@@ -122,7 +124,7 @@ namespace eval ::box {
         dict with args {}
 
         inputgroup [textinput $inputid placeholder $placeholder] \
-            [button $buttonid class "btn btn-secondary" text + cb $cb]
+            [button $buttonid class "input-group-btn" text + cb $cb]
     }
 
     set dynlist_defaults { addroute {} rmroute {} data {} existing {} }
@@ -302,14 +304,13 @@ namespace eval ::box {
     proc get { url args } {
         set class "list-group-item list-group-item-action nav-link list-text" 
         set style "border-radius: 0; padding-bottom: 0; padding-top: 0;" 
-        if { [dict exists $args -style] } {
-            append style [dict get $args -style]
+        if { [dict exists $args style] } {
+            append style [dict get $args style]
         }
-        if { [dict exists $args -class] } {
-            lappend class [dict get $args -class]
+        if { [dict exists $args class] } {
+            lappend class [dict get $args class]
         }
 
-        puts $args
         <a> href $url \
             class $class \
             style $style \
@@ -495,14 +496,14 @@ namespace eval ::box {
         box $id {*}$args [<div> class filepreview]
     }
 
-    set editor_defaults { route / data null }
+    set editor_defaults { route / data null initval {} }
     widget editor $editor_defaults { id args } {
         dict with args {}
 
         set data [dict2json $data]
 
         siblings \
-            [string map [mapvars id route data] {
+            [string map [mapvars id route data initval] {
                 <input type="textarea"  id="@id-editbox"></input>
                 <script>
                 $(document).ready(() => {
@@ -510,6 +511,7 @@ namespace eval ::box {
                         element: $("#@id-editbox")[0],
                         status: false,
                         toolbar: false,
+                        initialValue: "@initval",
                     });
 
                     $('#save').on('click', () => {
@@ -537,7 +539,7 @@ namespace eval ::box {
         
     }
     widget container $container_defaults { id args } {
-        set content [uplevel [lindex $args end]]
+        set content [siblings {*}[lmap script [lindex $args end] { uplevel $script }]]
         set args    [lrange $args 0 end-1]
 
         dict with args {}
@@ -550,7 +552,7 @@ namespace eval ::box {
             <script>
             $(document).ready(() => {
                 $("#@id").dialog({
-                    title: "hello",
+                    title: "@title",
                     dialogClass: "no-close custom",
                     position: @pos,
                     height: @height,
@@ -589,5 +591,5 @@ namespace eval ::box {
 
 
     namespace export -clear *
-    namespace ensemble create -subcommands { container editor dynamic-list }
+    namespace ensemble create -subcommands { container editor dynamic-list usercreds get button inputgroup siblings }
 }
