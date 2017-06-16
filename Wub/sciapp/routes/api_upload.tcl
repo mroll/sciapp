@@ -8,6 +8,7 @@ proc parsedata { data } {
 auth /api/upload { r args } {
     Query::with $r {}
     
+    puts $payload
     set eid    [dict get [json::json2dict $payload] eid]
     experiment data $eid [rows_from_csv $file]
 

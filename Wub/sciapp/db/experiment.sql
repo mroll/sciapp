@@ -3,5 +3,6 @@ create  table `experiment` (
         `qid` integer,
         `procedure` text,
         `resources` text,
+        `analysis` text,
         `vars` text
 );

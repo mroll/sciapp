@@ -49,6 +49,14 @@ namespace eval ::experiment {
         return $res
     }
 
+    proc analysis { id } {
+        set res [db eval {select analysis from experiment where id = $id}]
+        if { [llength $res] } {
+            set res [lindex $res 0]
+        }
+        return $res
+    }
+
     proc update { id field value } {
         set query "update experiment set $field = \$value where id = \$id"
         db eval $query
@@ -61,5 +69,5 @@ namespace eval ::experiment {
     }
 
     namespace export -clear *
-    namespace ensemble create -subcommands { create update procedure resources vars data addvar }
+    namespace ensemble create -subcommands { create update procedure resources vars data addvar analysis }
 }

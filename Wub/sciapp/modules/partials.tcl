@@ -127,15 +127,24 @@ namespace eval ::box {
             [button $buttonid class "input-group-btn" text + cb $cb]
     }
 
-    set dynlist_defaults { addroute {} rmroute {} data {} existing {} }
+    set dynlist_defaults { addroute {} rmroute {} data {} existing {} listtype static }
     widget dynamic-list $dynlist_defaults { id args } {
         dict with args {}
 
         set listid $id-list
         set inputid $id-input
         set buttonid $id-btn
-        set listitem [inputgroup [get /question?qid=\${id} text \${value}] \
-                          [button del-$id class "rm-item" text -]]
+
+        switch $listtype {
+            nav {
+                set listitem [inputgroup [get /question?qid=\${id} text \${value}] \
+                                  [button del-$id class "rm-item" text -]]
+            }
+            static {
+                set listitem [inputgroup [litem var\${id} text \${value}] \
+                                  [button del-$id class "rm-item" text -]]
+            }
+        }
 
         set data [dict2json $data]
 
@@ -181,8 +190,12 @@ namespace eval ::box {
             [file_upload $id-upload $payload]
     }
 
-    proc file_upload { id payload } {
+    set fileupload_defaults { payload {} }
+    widget fileupload $fileupload_defaults { id args } {
         # need to get uniq names for local javascript variables
+        dict with args {}
+
+        set payload [dict2json $payload]
 
         siblings \
             {<form id="file-upload-form" enctype="multipart/form-data">
@@ -218,7 +231,7 @@ namespace eval ::box {
 
                 $('#file-upload-btn').on('click', function() {
                     var data = new FormData($('#file-upload-form')[0]);
-                    data.set("payload", @payload);
+                    data.set("payload", JSON.stringify(@payload));
                     
                     $.ajax({
                         url: '/api/upload',
@@ -331,6 +344,8 @@ namespace eval ::box {
 
     set litem_defaults { text {} class list-text }
     widget litem $litem_defaults { id args } {
+        dict with args {}
+        
         set html [<span> id $id class "list-group-item $class" \
                       style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $text]
 
@@ -347,37 +362,12 @@ namespace eval ::box {
         siblings {*}$html
     }
 
-    proc litem { id txt args } {
-        set class list-text
-
-        dict for {k v} $args {
-            switch $k {
-                class { set class $v }
-            }
-        }
-        
-        set html [<span> id $id class "list-group-item $class" \
-                      style "border-radius: 0; padding-top: 0; padding-bottom: 0;" $txt]
-
-        if { [dict exists $args cb] } {
-            set cb [dict get $args cb]
-            set callback [string map [mapvars id cb] {
-                <script>
-                $(document).ready(() => {
-                    $('#@id').on('click', () => { @cb });
-                });
-                </script>
-            }]
-        }
-
-        siblings $callback $html
-    }
-
     proc list2js { l } {
         return \[[join [concat [lmap x $l { json::write string "$x" }]] ", "]\]
     }
 
-    proc boxgroups { id groups args } {
+    proc boxgroups { id groups } {
+        # this whole section of assignments should get cleaned up.
         set labels [dict keys $groups]
         set groups [dict values $groups]
         set boxids [concat {*}$groups]
@@ -385,7 +375,6 @@ namespace eval ::box {
         set boxidsjs [list2js $boxids]
         set groupsjs [lmap g $groups { list2js $g }]
 
-        # this whole section of assignments should get cleaned up.
         set pairs [lmap l $labels g $groupsjs { list $l $g }]
         set groupdictjs [json::write object {*}[concat {*}$pairs]]
 
@@ -408,11 +397,10 @@ namespace eval ::box {
                     $(`#${bid}`).dialog("open");
                 }
             }]
-            lappend md [litem ${label}group $label cb $callback]
+            lappend md [litem ${label}group text $label cb $callback]
         }
 
-        box $id {*}$args [siblings $js [<ul> [siblings {*}$md]]]
-
+        siblings $js [<ul> [siblings {*}$md]]
     }
 
 
@@ -504,25 +492,26 @@ namespace eval ::box {
 
         siblings \
             [string map [mapvars id route data initval] {
-                <input type="textarea"  id="@id-editbox"></input>
+                <input type="textarea"  id="@id_editbox"></input>
                 <script>
-                $(document).ready(() => {
-                    var simplemde = new SimpleMDE({
-                        element: $("#@id-editbox")[0],
+                    var simplemde_@id = new SimpleMDE({
+                        element: $("#@id_editbox")[0],
                         status: false,
                         toolbar: false,
-                        initialValue: "@initval",
+                        initialValue: `@initval`,
+                        spellChecker: false,
                     });
 
-                    $('#save').on('click', () => {
-                        $.post("@route", { data: @data, value: simplemde.value() }, data => {
+                $(document).ready(() => {
+                    $('#save_@id').on('click', () => {
+                        $.post("@route", { data: @data, value: simplemde_@id.value() }, data => {
                             console.log('saved!');
                         });
                     });
                 });
                 </script>
             }] \
-            [button save text Save]
+            [button save_$id text Save]
     }
 
     set container_defaults {
@@ -536,7 +525,6 @@ namespace eval ::box {
         dialogclass "no-close custom"
         pos "my center at center of #varwindow"
         title {}
-        
     }
     widget container $container_defaults { id args } {
         set content [siblings {*}[lmap script [lindex $args end] { uplevel $script }]]
@@ -544,6 +532,10 @@ namespace eval ::box {
 
         dict with args {}
         set pos [dict2json $pos]
+
+        if { $title eq {} } {
+            lappend dialogclass notitle
+        }
         
         set context  [mapvars id title pos height width \
                           minheight maxheight dialogclass \
@@ -553,7 +545,7 @@ namespace eval ::box {
             $(document).ready(() => {
                 $("#@id").dialog({
                     title: "@title",
-                    dialogClass: "no-close custom",
+                    dialogClass: "@dialogclass",
                     position: @pos,
                     height: @height,
                     width: @width,
@@ -591,5 +583,19 @@ namespace eval ::box {
 
 
     namespace export -clear *
-    namespace ensemble create -subcommands { container editor dynamic-list usercreds get button inputgroup siblings }
+    namespace ensemble create -subcommands {
+        container
+        editor
+        dynamic-list
+        usercreds
+        get
+        button
+        inputgroup
+        siblings
+        nav
+        litem
+        fileupload
+        boxgroups
+        showdata
+    }
 }

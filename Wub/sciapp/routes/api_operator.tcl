@@ -3,15 +3,17 @@ package require math::statistics 1
 auth /api/operator { r args } {
     Query::with $r {}
 
-    set path [regsub -all ___ $path .]
+    set colnames [lmap { 0 1 2 3 4 5 } [db eval "pragma table_info(e${eid}_data)"] { id $1 }]
+    for {set i 0} {$i < [llength $colnames]} {incr i} {
+        proc [lindex $colnames $i] { row } [string map [mapvars i] {
+            lindex $row @i
+        }]
+    }
 
-    # now we need to read the file and do the operation.
-    # will eventually use starbase.
+    set rows [db eval "select [join $colnames ,] from e${eid}_data"]
+    set res  [eval $script]
 
-    set data [fread $path]
-    puts $data
+    foreach name $colnames { rename $name {} }
 
-    set res [_html::showdata $windowid [::math::statistics::$operator $data]]
-    
-    Http Ok $r [::json::write object html [json::write string $res]] application/json
+    Http Ok $r [::json::write object result [json::write string $res]] application/json
 }

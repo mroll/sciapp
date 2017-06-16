@@ -23,9 +23,7 @@ proc login_get { r args } {
                     pos { my "center" at "center" of #varwindow } \
                     width 500 {
                         {box usercreds /login Login}
-                        {box get /register 
-                            text Register 
-                            class sciapp}
+                        {box get /register text Register class sciapp}
                     }]
 
     set r [Html style $r css]

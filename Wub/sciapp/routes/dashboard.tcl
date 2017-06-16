@@ -8,13 +8,18 @@ auth /dashboard { r args } {
     }]
 
     lappend page [box container questions \
-                  title Questions \
-                  pos { my center at center of #varwindow } \
+                  pos { my "center top" at "center bottom+100" of "#main-title" } \
                   width 400 {
                       {box dynamic-list question-list \
                           addroute /api/question/new \
                           rmroute /api/question/rm \
                           existing $qlist}
+                  }]
+
+    lappend page [box container logout \
+                  pos { my "left top" at "left-1 bottom+10" of "#questions" } \
+                  width 400 {
+                      {box nav /logout {text Logout}}
                   }]
 
     set r [Html style $r css]
