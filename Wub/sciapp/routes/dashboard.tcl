@@ -11,9 +11,10 @@ auth /dashboard { r args } {
                   pos { my "center top" at "center bottom+100" of "#main-title" } \
                   width 400 {
                       {box dynamic-list question-list \
-                          addroute /api/question/new \
-                          rmroute /api/question/rm \
-                          existing $qlist}
+                           addroute /api/question/new \
+                           rmroute /api/question/rm \
+                           existing $qlist \
+                           listtype nav}
                   }]
 
     lappend page [box container logout \
