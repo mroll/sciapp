@@ -1,6 +1,5 @@
-/** could break this into regular and inverted classes **/
 .sciapp {
-    background-color: #700cce;
+    background-color: #4707f5;
     color: white !important;
     border-radius: 0;
     font-family: 'Inconsolata', monospace;
@@ -17,7 +16,7 @@ body {
 }
 
 #main-title {
-    background-color: #700cce;
+    background-color: #4707f5;
     color: white;
     text-align: center;
 }
@@ -39,7 +38,7 @@ hr {
 }
 
 .list-group-item:hover {
-    background-color: #700cce;
+    background-color: #4707f5;
     color: white;
 }
 
@@ -83,6 +82,10 @@ hr {
 
 .btn-sciapp {
     cursor: pointer;
+}
+
+.full-width {
+    width: 100%;
 }
 
 .form-control {
@@ -130,7 +133,7 @@ hr {
 }
 
 .ui-dialog.custom .ui-widget-header {
-    background: #700cce;
+    background: #4707f5;
     border-radius: 0;
 }
 

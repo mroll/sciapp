@@ -123,11 +123,23 @@ namespace eval ::box {
     widget dynamic-input {} { id args } {
         dict with args {}
 
-        inputgroup [textinput $inputid placeholder $placeholder] \
-            [button $buttonid class "input-group-btn" text + cb $cb]
+        siblings \
+            [string map [mapvars inputid buttonid] {
+                <script>
+                $(document).ready(() => {
+                    $("#@inputid").on( "keydown", function(event) {
+                        if (event.which == 13) {
+                            $("#@buttonid").click();
+                        }
+                    });
+                })
+             </script>
+         }] \
+        [inputgroup [textinput $inputid placeholder $placeholder] \
+             [button $buttonid class "input-group-btn" text + cb $cb]]
     }
 
-    set dynlist_defaults { addroute {} rmroute {} data {} existing {} listtype static }
+    set dynlist_defaults { addroute {} rmroute {} data {} existing {} listtype static placeholder {} }
     widget dynamic-list $dynlist_defaults { id args } {
         dict with args {}
 
@@ -161,7 +173,7 @@ namespace eval ::box {
             }
         }]]
 
-        lappend html [dynamic-input new-q inputid $inputid buttonid $buttonid placeholder "Ask anything..." cb \
+        lappend html [dynamic-input new-q inputid $inputid buttonid $buttonid placeholder $placeholder cb \
                           [string map [mapvars inputid listitem addroute rmroute data id listid] {
                               var value = $('#@inputid').val();
                               if (value == '') {
@@ -366,7 +378,13 @@ namespace eval ::box {
         return \[[join [concat [lmap x $l { json::write string "$x" }]] ", "]\]
     }
 
-    proc boxgroups { id groups } {
+    set boxgroup_defaults { defaultgrp {} }
+    widget boxgroups $boxgroup_defaults { id args } {
+        set groups [lindex $args end]
+        set args [lrange $args 0 end-1]
+
+        dict with args {}
+
         # this whole section of assignments should get cleaned up.
         set labels [dict keys $groups]
         set groups [dict values $groups]
@@ -385,6 +403,10 @@ namespace eval ::box {
             </script>
         }]
 
+        if { $defaultgrp eq {} } {
+            set defaultgrp [lindex $labels 0]
+        }
+
         foreach group $groups label $labels {
             set group [list2js $group]
 
@@ -398,11 +420,22 @@ namespace eval ::box {
                 }
             }]
             lappend md [litem ${label}group text $label cb $callback]
+
+            if { !($label eq $defaultgrp) } {
+                lappend md [string map [mapvars label] {
+                    <script>
+                      $(document).ready(() => {
+                        for (let bid of groups["@label"]) {
+                            $(`#${bid}`).dialog("close");
+                        }
+                      });
+                    </script>
+                }]
+            }
         }
 
         siblings $js [<ul> [siblings {*}$md]]
     }
-
 
     proc dirlink { windowid cwd path dialogid } {
         set dir [regsub -all / $path ___]
@@ -511,7 +544,7 @@ namespace eval ::box {
                 });
                 </script>
             }] \
-            [button save_$id text Save]
+            [button save_$id text Save class full-width]
     }
 
     set container_defaults {
@@ -542,20 +575,20 @@ namespace eval ::box {
                           minwidth maxwidth]
         set js [string map $context {
             <script>
-            $(document).ready(() => {
-                $("#@id").dialog({
-                    title: "@title",
-                    dialogClass: "@dialogclass",
-                    position: @pos,
-                    height: @height,
-                    width: @width,
-                    minHeight: @minheight,
-                    maxHeight: @maxheight,
-                    minWidth: @minwidth,
-                    maxWidth: @maxwidth,
-                });
+              $(document).ready(() => {
+                  $("#@id").dialog({
+                      title: "@title",
+                      dialogClass: "@dialogclass",
+                      position: @pos,
+                      height: @height,
+                      width: @width,
+                      minHeight: @minheight,
+                      maxHeight: @maxheight,
+                      minWidth: @minwidth,
+                      maxWidth: @maxwidth,
+                  });
 
-            });
+              });
             </script>
         }]
         

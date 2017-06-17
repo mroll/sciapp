@@ -1,6 +1,6 @@
 auth /dashboard { r args } {
     set page [<div> id "main-title" class "jumbotron" \
-                  [<h1> Scope]]
+                  [<h1> LookingGlass]]
 
     set qlist [lmap { id q } [user questions $name] {
         box inputgroup [box get /question?qid=$id text $q] \
@@ -9,7 +9,7 @@ auth /dashboard { r args } {
 
     lappend page [box container questions \
                   pos { my "center top" at "center bottom+100" of "#main-title" } \
-                  width 400 {
+                  width 1000 {
                       {box dynamic-list question-list \
                            addroute /api/question/new \
                            rmroute /api/question/rm \
@@ -24,5 +24,5 @@ auth /dashboard { r args } {
                   }]
 
     set r [Html style $r css]
-    return [Http Ok $r $page]
+    return [Http Ok $r [box siblings {*}$page]]
 }

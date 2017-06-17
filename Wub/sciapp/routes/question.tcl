@@ -2,7 +2,7 @@ auth /question { r args } {
     Query::with $r {}
 
     set page [<div> id "main-title" class "jumbotron" \
-                  [<h1> Scope]]
+                  [<h1> LookingGlass]]
 
     lappend page [<div> class row \
                     [<div> class "offset-md-3 col-md-6" \
@@ -41,28 +41,49 @@ auth /question { r args } {
 
     lappend page [box container hypothesis \
                       title Hypothesis \
-                      width 400 \
-                      pos { my "left top" at "right top" of "#sitenav" } {
+                      width 500 \
+                      pos { my "center top" at "center bottom+100" of ".jumbotron" } {
                           {box editor hypothesis_editor \
                               route /api/hypothesis/update \
                               data "hid $hid" \
                               initval $hypothesis}
                       }]
 
+    lappend page [box container procedure \
+                      title Procedure \
+                      width 400 \
+                      pos { my "left+15 top" at "right top" of "#groups" } {
+                          {box editor procedure_editor \
+                              route /api/experiment/update \
+                              data "eid $eid field procedure" \
+                              initval $procedure}
+                      }]
+
+    lappend page [box container resources \
+                      title Resources \
+                      width 400 \
+                      pos { my "left top" at "right+15 top-47" of "#procedure" } {
+                          {box editor resources_editor \
+                              route /api/experiment/update \
+                              data "eid $eid field resources" \
+                              initval $resources}
+                      }]
+
     lappend page [box container vars \
                       title Variables \
                       width 400 \
-                      pos { my "right top" at "right bottom" of ".jumbotron" } {
+                      pos { my "left top" at "right+15 top-47" of "#resources" } {
                           {box dynamic-list varlist \
                                addroute /api/variable/new \
                                rmroute /api/variable/rm \
                                data "eid $eid" \
-                               existing $varlist}
+                               existing $varlist \
+                               placeholder "distance, windspeed, temp, etc..."}
                       }]
 
     lappend page [box container upload \
                       width 400 \
-                      pos { my "left top" at "left bottom+10" of "#sitenav" } {
+                      pos { my "center top" at "center bottom+100" of ".jumbotron" } {
                           {box fileupload _upload payload "eid $eid"}
                       }]
 
@@ -74,7 +95,7 @@ auth /question { r args } {
                                route /api/experiment/update \
                                data "eid $eid field analysis" \
                                initval $analysis}
-                          {box button analyze text Run cb [string map [mapvars eid] {
+                          {box button analyze text Run class full-width cb [string map [mapvars eid] {
                               $.post('/api/operator', { eid: @eid, script: simplemde_analysis_editor.value() }, (data) => {
                                   console.log(data);
                                   $('#results').text(data.result);
@@ -85,11 +106,12 @@ auth /question { r args } {
 
     lappend page [box container groups \
                       width 400 \
-                      title groups \
-                      pos { my "left top" at "left bottom+10" of "#upload" } {
+                      pos { my "left top" at "left bottom+10" of "#sitenav" } {
                           {box boxgroups groups {
-                              Design {hypothesis vars}
+                              Hypothesis {hypothesis}
+                              Design {procedure resources vars}
                               Measurement {upload}
+                              Analysis {analysis}
                           }}
                       }]
 
