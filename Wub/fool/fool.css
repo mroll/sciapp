@@ -10,6 +10,11 @@
     font-family: 'Inconsolata', monospace;
 }
 
+.sciapp-inverse:hover {
+    background-color: #4707f5;
+    color: white;
+}
+
 body {
     background-color: white;
     font-family: 'Inconsolata', monospace;
@@ -37,7 +42,8 @@ hr {
     border-radius: 0;
 }
 
-.list-group-item:hover {
+.list-group-item-action:hover {
+    cursor: pointer;
     background-color: #4707f5;
     color: white;
 }
@@ -45,7 +51,7 @@ hr {
 .list-group-item {
     width: 100%;
     margin-bottom: 0;
-    cursor: pointer;
+    // cursor: pointer;
     padding: 0;
 }
 
@@ -75,13 +81,9 @@ hr {
     margin: auto;
 }
 
-#register-btn {
-    width: 100%;
-    cursor: pointer;
-}
-
 .btn-sciapp {
     cursor: pointer;
+    margin: 0;
 }
 
 .full-width {
@@ -119,7 +121,7 @@ hr {
 }
 
 .ui-widget.custom button {
-    border: 1px solid #a3a3a3;
+    line-height: inherit;
     font-family: 'Inconsolata', monospace;
 }
 
@@ -164,4 +166,10 @@ filepreview {
 ul {
     padding: 0;
     margin: 0;
+}
+
+tr:hover {
+    cursor: pointer;
+    background: #4707f5 !important;
+    color: white;
 }

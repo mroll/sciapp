@@ -21,8 +21,13 @@ proc login_get { r args } {
                     pos { my "center" at "center" of #varwindow } \
                     width 500 {
                         {box usercreds /login Login}
-                        {box get /register text Register class sciapp}
                     }]
+
+    lappend page [box container register \
+                      width 500 \
+                      pos { my "left top" at "left bottom+5" of "#login" } {
+                          {box get /register text Register class sciapp}
+                      }]
 
     set r [Html style $r css]
     return [Http Ok $r [box siblings {*}$page]]

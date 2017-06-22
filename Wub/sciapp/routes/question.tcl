@@ -1,9 +1,6 @@
 auth /question { r args } {
     Query::with $r {}
 
-    set page [<div> id "main-title" class "jumbotron" \
-                  [<h1> LookingGlass]]
-
     lappend page [<div> class row \
                     [<div> class "offset-md-3 col-md-6" \
                         [<h3> style "text-align: center;" [question text $qid]]]]
@@ -21,6 +18,7 @@ auth /question { r args } {
     }
 
     set hypothesis [hypothesis get $hid]
+    set notes      [experiment notes $eid]
     set procedure  [experiment procedure $eid]
     set resources  [experiment resources $eid]
     set analysis   [experiment analysis  $eid]
@@ -34,9 +32,11 @@ auth /question { r args } {
     }]
 
     lappend page [box container sitenav \
-                    width 350 \
+                    width 200 \
                     pos { my "left+15 top+55" at "left bottom" of ".jumbotron" } {
+                        {box litem welcomemsg text $name class sciapp}
                         {box nav /dashboard {text dashboard}}
+                        {box get /logout text logout}
                     }]
 
     lappend page [box container hypothesis \
@@ -49,29 +49,39 @@ auth /question { r args } {
                               initval $hypothesis}
                       }]
 
-    lappend page [box container procedure \
-                      title Procedure \
-                      width 400 \
-                      pos { my "left+15 top" at "right top" of "#groups" } {
-                          {box editor procedure_editor \
-                              route /api/experiment/update \
-                              data "eid $eid field procedure" \
-                              initval $procedure}
+    lappend page [box container notes \
+                      title Notes \
+                      width 600 \
+                      pos { my "center top" at "center bottom+100" of ".jumbotron" } {
+                          {box editor _notes \
+                               route /api/experiment/update \
+                               data "eid $eid field notes" \
+                               initval $notes}
                       }]
 
     lappend page [box container resources \
                       title Resources \
-                      width 400 \
-                      pos { my "left top" at "right+15 top-47" of "#procedure" } {
+                      width 300 \
+                      pos { my "center top" at "center bottom+100" of ".jumbotron" } {
                           {box editor resources_editor \
                               route /api/experiment/update \
                               data "eid $eid field resources" \
                               initval $resources}
                       }]
 
+    lappend page [box container procedure \
+                      title Procedure \
+                      width 300 \
+                      pos { my "center top" at "center-320 bottom+100" of ".jumbotron" } {
+                          {box editor procedure_editor \
+                              route /api/experiment/update \
+                              data "eid $eid field procedure" \
+                              initval $procedure}
+                      }]
+
     lappend page [box container vars \
                       title Variables \
-                      width 400 \
+                      width 300 \
                       pos { my "left top" at "right+15 top-47" of "#resources" } {
                           {box dynamic-list varlist \
                                addroute /api/variable/new \
@@ -90,14 +100,16 @@ auth /question { r args } {
     lappend page [box container analysis \
                       title Analysis \
                       width 500 \
-                      pos {} {
+                      pos { my "center top" at "center bottom+100" of ".jumbotron" } {
                           {box editor analysis_editor \
                                route /api/experiment/update \
                                data "eid $eid field analysis" \
                                initval $analysis}
                           {box button analyze text Run class full-width cb [string map [mapvars eid] {
-                              $.post('/api/operator', { eid: @eid, script: simplemde_analysis_editor.value() }, (data) => {
-                                  console.log(data);
+                              $.post('/api/operator', {
+                                  eid: @eid,
+                                  script: simplemde_analysis_editor.value()
+                              }, (data) => {
                                   $('#results').text(data.result);
                               });
                           }]}
@@ -105,10 +117,11 @@ auth /question { r args } {
               }]
 
     lappend page [box container groups \
-                      width 400 \
+                      width 200 \
                       pos { my "left top" at "left bottom+10" of "#sitenav" } {
                           {box boxgroups groups {
                               Hypothesis {hypothesis}
+                              Notes {notes}
                               Design {procedure resources vars}
                               Measurement {upload}
                               Analysis {analysis}

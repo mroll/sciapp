@@ -1,3 +1,7 @@
+source fool/util.tcl
+
+foreach f [glob fool/modules/*] { source $f }
+
 namespace eval ::box {
     proc dict2json { d } {
         if { [dict keys $d] eq {} } { return [json::write object] }
@@ -50,6 +54,11 @@ namespace eval ::box {
         return {<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/black-tie/jquery-ui.css">}
     }
 
+    proc datatable_bootstrap { } {
+        <script> src "https://cdn.datatables.net/1.10.15/js/dataTables.bootstrap4.min.js"
+        <link> href "https://cdn.datatables.net/1.10.15/css/dataTables.bootstrap4.min.css" rel stylesheet
+    }
+
     proc bootstrap { } {
         return {
             <link rel="stylesheet"
@@ -72,6 +81,13 @@ namespace eval ::box {
         }
     }
 
+    proc DataTable { } {
+        siblings \
+            [<link> href "https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" \
+                 rel stylesheet] \
+            [<script> src "https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"]
+    }
+
     proc mathbox { } {
         <script> src "../assets/js/mathbox/mathbox-bundle.js"
     }
@@ -80,18 +96,60 @@ namespace eval ::box {
         <div> class input-group [siblings {*}$args]
     }
 
-    proc <button> { args } {
+    set textform_defaults { action {} method post names {} cb {} }
+    widget textform $textform_defaults { id args } {
         dict with args {}
-        string map [mapvars {*}[dict keys $args]] {<button id="@id" class="@class">@text</button>}
+
+        set formvals [lmap name $names {
+            list $name [string map [mapvars name] {$('#_@name').val()}]
+        }]
+        set data [json::write object {*}[concat {*}$formvals]]
+
+        set cleanup [siblings {*}[lmap name $names {
+            string map [mapvars name] { $('#_@name').val(''); }
+        }]]
+
+        if { $cb ne {} } {
+            lappend html [string map [mapvars id action cb cleanup names data] {
+                <script>
+                $(document).ready(() => {
+                    $('#@id').on('submit', (e) => {
+                        e.preventDefault();
+
+                        $.post('@action', @data, @cb);
+                        @cleanup
+                    });
+                });
+                </script>
+            }]
+        }
+
+        lappend html [<form> id $id action $action method $method \
+                          [siblings \
+                               {*}[lmap name $names {
+                                   <div> class "form-group row" \
+                                       style "margin: 0;" \
+                                       [siblings \
+                                            [<label> class "col-sm-2 col-form-label" for $name] \
+                                            [<div> class col-sm-10 \
+                                                 style "padding: 0;" \
+                                                 [<input> id _$name class form-control style "margin-bottom: 5px;" type textarea name $name {}]]] }] \
+                               [<div> class col-sm-12 \
+                                    style "padding: 0;" \
+                                    [button $id-btn type submit text Submit]]]]
+
+        siblings {*}$html
     }
 
-    set button_defaults { text Button defaultclass "btn sciapp btn-sciapp" }
+    set button_defaults { text Button dataid {} defaultclass "btn sciapp btn-sciapp" type {} defaultstyle "width: 100%;"}
     widget button $button_defaults { id args } {
         dict with args {}
 
-        if { [info exists class] } { lappend defaultclass $class }
+        if { [info exists class] } { append defaultclass " $class" }
+        if { [info exists style] } { append defaultstyle " $style" }
 
-        set html [<button> id $id class $defaultclass text $text]
+        set html [<button> _$id id $id type $type dataid ${dataid} \
+                      class $defaultclass style "$defaultstyle" $text]
 
         if { [info exists cb] } {
             lappend html [string map [mapvars id cb] {
@@ -150,11 +208,11 @@ namespace eval ::box {
         switch $listtype {
             nav {
                 set listitem [inputgroup [get /question?qid=\${id} text \${value}] \
-                                  [button del-$id class "rm-item" text -]]
+                                  [button del-$id dataid \${id} class "rm-item" text -]]
             }
             static {
                 set listitem [inputgroup [litem var\${id} text \${value}] \
-                                  [button del-$id class "rm-item" text -]]
+                                  [button del-$id dataid \${id} class "rm-item" text -]]
             }
         }
 
@@ -167,6 +225,7 @@ namespace eval ::box {
                 var el = $(e.target),
                 data = { id: el.attr('data-id') };
 
+                console.log(data);
                 $.post('@rmroute', data, data => {
                     el.closest('div').remove();
                 });
@@ -180,7 +239,6 @@ namespace eval ::box {
                                   return;
                               }
                               data = { value: value, data: @data };
-                              console.log(data);
 
                               $.post('@addroute', data, function(data) {
                                   if (data.message == "success") {
@@ -194,7 +252,14 @@ namespace eval ::box {
                               });
                           }]]
 
-        siblings {*}$html {*}[<ul> id $listid class list-group [siblings {*}$existing]]
+        siblings \
+            {*}$html \
+            {*}[<ul> id $listid class list-group [siblings {*}$existing]] \
+            [<script> {
+                $(document).ready(() => {
+                    $('.rm-item').click(deleteitem);
+                });
+            }]
     }
 
     proc uploader { id payload args } {
@@ -202,12 +267,13 @@ namespace eval ::box {
             [file_upload $id-upload $payload]
     }
 
-    set fileupload_defaults { payload {} }
+    set fileupload_defaults { route {} payload {} cb {} }
     widget fileupload $fileupload_defaults { id args } {
         # need to get uniq names for local javascript variables
         dict with args {}
 
         set payload [dict2json $payload]
+        puts "payload: $payload"
 
         siblings \
             {<form id="file-upload-form" enctype="multipart/form-data">
@@ -225,7 +291,7 @@ namespace eval ::box {
                 style="border-radius: 0; padding-top: 0; padding-bottom: 0;">Choose File</a>
                 </div>
                 </form>} \
-            [string map [mapvars payload] {<script>
+            [string map [mapvars route payload cb] {<script>
                 function handlefiles(files) {
                     $('#file-upload-btn').prop("disabled", false);
                     $('#file-select').text(files[0].name);
@@ -246,7 +312,7 @@ namespace eval ::box {
                     data.set("payload", JSON.stringify(@payload));
                     
                     $.ajax({
-                        url: '/api/upload',
+                        url: '@route',
                         type: 'POST',
                         data: data,
 
@@ -262,6 +328,8 @@ namespace eval ::box {
                         success: function(data) {
                             $('#file-select').text('Choose File');
                             $('#file-upload-btn').prop("disabled", "true");
+
+                            @cb
                         }
                     });
                 });
@@ -294,7 +362,7 @@ namespace eval ::box {
                               [<input> id password name password type password \
                                    class "form-control user-input-lg sciapp-inverse" \
                                    placeholder "password" {}]] \
-                         [post $url -text $btntext -ids {name password}]]]
+                         [button login-btn type submit style "margin: 0; padding: 0; " text $btntext]]]
     }
 
     proc post { url args } {
@@ -327,8 +395,8 @@ namespace eval ::box {
     }
 
     proc get { url args } {
-        set class "list-group-item list-group-item-action nav-link list-text" 
-        set style "border-radius: 0; padding-bottom: 0; padding-top: 0;" 
+        set class "list-group-item list-group-item-action nav-link" 
+        set style "display: block; border-radius: 0; padding-bottom: 0; padding-top: 0; text-align: center;" 
         if { [dict exists $args style] } {
             append style [dict get $args style]
             dict unset args style
@@ -510,6 +578,50 @@ namespace eval ::box {
         lmap f [files $cwd] { filelink $windowid $cwd $f $dialogid }
     }
 
+    set modal_defaults { btnid {} }
+    widget modal $modal_defaults { id args } {
+        set content [lmap script [lindex $args end] { uplevel $script }]
+        set args    [lrange $args 0 end-1]
+
+        dict with args {}
+        
+        <div> class "modal fade" id $id tabindex -1 role dialog aria-hidden true \
+            [<div> class modal-dialog role document \
+                 [<div> class modal-content \
+                      [siblings \
+                           [<div> class modal-header \
+                                [siblings \
+                                     [<h5> class modal-title "new book"] \
+                                     [<button> closer id closer class "sciapp btn btn-sciapp" data-dismiss modal close]]] \
+                           [<div> class modal-body {*}$content]]]]
+    }
+
+    set datatable_defaults { addroute {} rmroute {} hdrs {} existing {} init {} }
+    widget datatable $datatable_defaults { id args } {
+        dict with args {}
+
+        lappend html [<table> id $id class "table table-striped table-bordered" \
+                          style "margin: 0 !important;" \
+                          [siblings \
+                               [<thead> [lmap hdr $hdrs { <th> $hdr }]] \
+                               [<tbody> [siblings {*}$existing]]]]
+
+        lappend html [<script> [string map [mapvars id init] {
+            $(document).ready(() => {
+                $('#@id').DataTable({
+                    paging: false,
+                    info: false,
+                    scrollY: "300px",
+                });
+
+                var table = $('#@id').DataTable();
+                @init
+            });
+          }]]
+
+        siblings {*}$html
+    }
+
     proc html_escape { string } {
         set patterns { & \\&amp\; < \\&lt\; > \\&gt\; }
         dict for {k v} $patterns  {
@@ -637,5 +749,9 @@ namespace eval ::box {
         boxgroups
         showdata
         navbar
+        datatable
+        textform
+        modal
     }
 }
+
