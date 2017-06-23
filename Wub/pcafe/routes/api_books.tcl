@@ -1,12 +1,11 @@
 auth /api/book/new { r args } {
     Query::with $r {}
 
-
     set bid [book add $name $author $pub $comment]
     set uid [user id $username]
     dblink user $uid book $bid
 
-    set res [json::write object id $bid {*}[concat {*}[lmap colname [lrange [book columns] 1 end] {
+    set res [json::write object id $bid {*}[concat {*}[lmap colname [lrange [book columns] 1 end-1] {
         list $colname [json::write string [set $colname]]
     }]]]
 

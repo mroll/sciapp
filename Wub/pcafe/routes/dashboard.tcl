@@ -4,7 +4,6 @@ auth /dashboard { r args } {
     set booklist [lmap book [user books $username] {
         <tr> [box siblings {*}[lmap col [lrange $book 0 end-1] { <td> $col }]]
     }]
-
     
     lappend page [box container logout \
                       width 300 \
@@ -38,7 +37,7 @@ auth /dashboard { r args } {
                       }]
 
     lappend page [box container newbook \
-                      pos { my "left top" at "left bottom+15" of "#logout" } {
+                      pos { my "left top" at "left bottom+5" of "#logout" } {
                           {<button> newbook-btn id newbook-btn data-toggle modal \
                                data-target "#newbook-modal" \
                                class "sciapp btn btn-sciapp" "new book"}
@@ -47,7 +46,7 @@ auth /dashboard { r args } {
     lappend page [box modal newbook-modal btnid newbook-btn {
         {box textform _newbook \
              action /api/book/new \
-             names [lrange [book columns] 1 end] \
+             names [lrange [book columns] 1 end-1] \
              cb {(data) => {
                  $('#newbook-modal').modal('hide');
 
@@ -55,6 +54,15 @@ auth /dashboard { r args } {
                  table.row.add(Object.keys(data).map(k => {
                      return data[k];
                  })).draw();
+
+                 var bid = data.id;
+                 $('#_books').append(`<form id="book${bid}" action="/book" method="get">
+                                     <input type="hidden" name="id" value="${bid}">
+                                     </form>`);
+                 $('#_books tr').click(function() {
+                     var id = $($(this).children()[0]).text();
+                     $(`#book${id}`).submit();
+                 });
              }}}
     }]
                       

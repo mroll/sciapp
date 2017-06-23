@@ -267,7 +267,7 @@ namespace eval ::box {
             [file_upload $id-upload $payload]
     }
 
-    set fileupload_defaults { route {} payload {} cb {} }
+    set fileupload_defaults { route {} payload {} cb {} btn1text upload btn2text "choose file" }
     widget fileupload $fileupload_defaults { id args } {
         # need to get uniq names for local javascript variables
         dict with args {}
@@ -276,21 +276,22 @@ namespace eval ::box {
         puts "payload: $payload"
 
         siblings \
-            {<form id="file-upload-form" enctype="multipart/form-data">
+            [string map [mapvars btn1text btn2text] {
+                <form id="file-upload-form" enctype="multipart/form-data">
                 <div class="input-group">
                   <input id="file-upload" name="file" type="file"
                   style="display: none;"
                   onchange="handlefiles(this.files)" />
 
                   <button id="file-upload-btn"
-                  class="btn btn-sciapp sciapp"
-                  type="button" disabled>Upload</button>
+                  class="sciapp btn-sciapp"
+                  type="button" disabled>@btn1text</button>
 
                 <a class="list-group-item list-group-item-action list-text"
                 id="file-select" href="#"
-                style="border-radius: 0; padding-top: 0; padding-bottom: 0;">Choose File</a>
+                style="border-radius: 0; padding-top: 0; padding-bottom: 0;">@btn2text</a>
                 </div>
-                </form>} \
+                </form>}] \
             [string map [mapvars route payload cb] {<script>
                 function handlefiles(files) {
                     $('#file-upload-btn').prop("disabled", false);

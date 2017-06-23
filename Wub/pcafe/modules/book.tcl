@@ -16,8 +16,20 @@ namespace eval ::book {
         lmap { 0 1 2 3 4 5 } [db eval "pragma table_info(book)"] { id $1 }
     }
 
-    proc name { id } {
-        db eval {select name from book where id = $id}
+    proc title { id } {
+        set res [db eval {select name from book where id = $id}]
+        if { [llength $res] == 1 } {
+            set res [lindex $res 0]
+        }
+        return $res
+    }
+
+    proc author { id } {
+        set res [db eval {select author from book where id = $id}]
+        if { [llength $res] == 1 } {
+            set res [lindex $res 0]
+        }
+        return $res
     }
 
     proc img { id } {
@@ -30,5 +42,5 @@ namespace eval ::book {
     }
 
     namespace export -clear *
-    namespace ensemble create -subcommands { add rm columns name img update }
+    namespace ensemble create -subcommands { add rm columns title img update author }
 }
