@@ -357,11 +357,11 @@ namespace eval ::box {
                     [siblings \
                          [<div> \
                               [<input> id name name name type text \
-                                   class "form-control user-input-lg sciapp-inverse" \
+                                   class "form-control user-input-lg" \
                                    placeholder "name" {}]] \
                          [<div> \
                               [<input> id password name password type password \
-                                   class "form-control user-input-lg sciapp-inverse" \
+                                   class "form-control user-input-lg" \
                                    placeholder "password" {}]] \
                          [button login-btn type submit style "margin: 0; padding: 0; " text $btntext]]]
     }
